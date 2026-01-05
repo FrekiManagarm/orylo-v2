@@ -1,0 +1,48 @@
+import Cta from "@/components/landing/cta";
+import Features from "@/components/landing/features";
+import RoiCalculator from "@/components/landing/roi-calculator";
+import Footer from "@/components/landing/footer";
+import Hero from "@/components/landing/hero";
+import Navbar from "@/components/landing/navbar";
+import Pricing from "@/components/landing/pricing";
+import { Metadata } from "next";
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://orylo.app";
+
+export const metadata: Metadata = {
+  title: "Orylo - Stop Card Testing. Understand Why.",
+  description:
+    "Detect and block card testing attacks with visual explanations. See exactly why each transaction was flagged. Setup in 5 minutes. From €99/month.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Orylo - Stop Card Testing. Understand Why.",
+    description:
+      "Detect and block card testing attacks with visual explanations. See exactly why each transaction was flagged. Setup in 5 minutes. From €99/month.",
+    url: baseUrl,
+  },
+  twitter: {
+    title: "Orylo - Stop Card Testing. Understand Why.",
+    description:
+      "Detect and block card testing attacks with visual explanations. See exactly why each transaction was flagged. Setup in 5 minutes. From €99/month.",
+  },
+};
+
+export default function Home() {
+  return (
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/20 selection:text-primary">
+      <Navbar />
+
+      <main>
+        <Hero />
+        <Features />
+        <RoiCalculator />
+        <Pricing />
+        <Cta />
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

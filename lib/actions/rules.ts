@@ -1,0 +1,157 @@
+"use server";
+
+import { db } from "@/lib/db";
+import { fraudDetectionRules, fraudDetectionRulesInsertSchema } from "@/lib/db/schemas/fraudDetectionRules";
+import { eq, desc } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+
+export type CreateRuleInput = {
+  organizationId: string;
+  name: string;
+  description?: string;
+  enabled?: boolean;
+  priority?: number;
+  conditions: Record<string, any>;
+  action: "block" | "review" | "require_3ds" | "alert_only";
+  threshold?: number;
+};
+
+export async function createRule(input: CreateRuleInput) {
+  try {
+    // Validation des données
+    const validatedData = fraudDetectionRulesInsertSchema.parse({
+      ...input,
+      updatedAt: new Date(),
+    });
+
+    // Création de la règle
+    const [newRule] = await db
+      .insert(fraudDetectionRules)
+      .values(validatedData)
+      .returning();
+
+    // Revalider la page des règles
+    revalidatePath("/dashboard/rules");
+
+    return {
+      success: true,
+      data: newRule,
+    };
+  } catch (error) {
+    console.error("Error creating rule:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de la création de la règle",
+    };
+  }
+}
+
+export async function updateRule(
+  id: string,
+  input: Partial<CreateRuleInput>
+) {
+  try {
+    const [updatedRule] = await db
+      .update(fraudDetectionRules)
+      .set({
+        ...input,
+        updatedAt: new Date(),
+      })
+      .where(eq(fraudDetectionRules.id, id))
+      .returning();
+
+    revalidatePath("/dashboard/rules");
+
+    return {
+      success: true,
+      data: updatedRule,
+    };
+  } catch (error) {
+    console.error("Error updating rule:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de la mise à jour de la règle",
+    };
+  }
+}
+
+export async function deleteRule(id: string) {
+  try {
+    await db.delete(fraudDetectionRules).where(eq(fraudDetectionRules.id, id));
+
+    revalidatePath("/dashboard/rules");
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error("Error deleting rule:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de la suppression de la règle",
+    };
+  }
+}
+
+export async function toggleRuleEnabled(id: string, enabled: boolean) {
+  try {
+    const [updatedRule] = await db
+      .update(fraudDetectionRules)
+      .set({
+        enabled,
+        updatedAt: new Date(),
+      })
+      .where(eq(fraudDetectionRules.id, id))
+      .returning();
+
+    revalidatePath("/dashboard/rules");
+
+    return {
+      success: true,
+      data: updatedRule,
+    };
+  } catch (error) {
+    console.error("Error toggling rule:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de la modification de la règle",
+    };
+  }
+}
+
+export async function getRulesByOrganization(organizationId: string) {
+  try {
+    const organizationRules = await db
+      .select()
+      .from(fraudDetectionRules)
+      .where(eq(fraudDetectionRules.organizationId, organizationId))
+      .orderBy(desc(fraudDetectionRules.priority));
+
+    return {
+      success: true,
+      data: organizationRules,
+    };
+  } catch (error) {
+    console.error("Error fetching rules:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Une erreur est survenue lors de la récupération des règles",
+      data: [],
+    };
+  }
+}

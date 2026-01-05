@@ -1,0 +1,328 @@
+---
+description: Gestion du billing et usage-based pricing avec Autumn.js
+globs: ["autumn.config.ts", "lib/autumn.ts", "app/api/autumn/**/*.ts"]
+---
+
+# Billing & Usage - Autumn.js
+
+## Vue d'ensemble
+
+Orylo utilise **Autumn.js** pour le usage-based billing et la gestion des limites.
+Autumn est synchronisé avec Better Auth via le plugin `autumn` pour lier automatiquement organizations → customers.
+
+## Configuration
+
+### Autumn Config (`autumn.config.ts`)
+
+Fichier central définissant les features et products:
+
+```typescript
+import { feature, product, featureItem, priceItem } from "atmn";
+
+// 1. Définir les features
+export const transactions = feature({
+  id: "transactions",
+  name: "Transactions",
+  type: "single_use", // Consommable
+});
+
+export const apiAccess = feature({
+  id: "api_access",
+  name: "API Access",
+  type: "boolean", // On/Off
+});
+
+// 2. Définir les products (plans)
+export const freePlan = product({
+  id: "free_plan",
+  name: "Free plan",
+  is_default: true,
+  items: [
+    featureItem({
+      feature_id: transactions.id,
+      included_usage: 1000,
+      interval: "month",
+    }),
+  ],
+});
+
+export const proMonthly = product({
+  id: "pro_monthly",
+  name: "Pro Monthly",
+  items: [
+    priceItem({
+      price: 39,
+      interval: "month",
+    }),
+    featureItem({
+      feature_id: transactions.id,
+      included_usage: "inf", // Illimité
+    }),
+  ],
+});
+```
+
+### Types de Features
+
+1. **`single_use`**: Usage consommable (transactions, API calls, etc.)
+2. **`boolean`**: Feature activée/désactivée
+3. **`single_use` avec limite**: Nombre d'items (règles, comptes Stripe, etc.)
+
+### Client Autumn (`lib/autumn.ts`)
+
+```typescript
+import { Autumn } from "autumn-js";
+
+export const autumn = new Autumn({
+  secretKey: process.env.AUTUMN_SECRET_KEY,
+});
+```
+
+## Plans & Features
+
+### Plans disponibles
+1. **Free Plan**: 1000 transactions/mois, 7 jours d'historique
+2. **Pro Monthly** (39€/mois): Transactions illimitées, 30 jours historique, 3 règles, 5 comptes Stripe
+3. **Pro Yearly** (351€/an): Comme Pro Monthly avec discount
+4. **Business Monthly** (99€/mois): Tout illimité + API + Alertes Slack/Discord, 90 jours historique
+5. **Business Yearly** (891€/an): Comme Business Monthly avec discount
+6. **Growth Tier 7 Yearly** (72000€/an): Enterprise plan, 1M transactions/an
+
+### Features disponibles
+- `transactions`: Nombre d'analyses de fraude
+- `api_access`: Accès à l'API
+- `priority_email_support`: Support email prioritaire
+- `rules`: Nombre de règles de détection
+- `stripe_accounts`: Nombre de comptes Stripe connectés
+- `days_history`: Jours d'historique disponibles
+- `slackdiscord_alerts`: Intégration alertes Slack/Discord
+
+## Patterns d'utilisation
+
+### 1. Vérifier les limites
+
+```typescript
+import { checkTransactionsLimit } from "@/lib/autumn";
+
+export async function handlePayment(orgId: string) {
+  // Vérifier si l'organization peut analyser une transaction
+  const { allowed, used, limit } = await checkTransactionsLimit(orgId);
+
+  if (!allowed) {
+    throw new Error(`Limite atteinte: ${used}/${limit} transactions`);
+  }
+
+  // Procéder avec l'analyse...
+}
+```
+
+### 2. Incrémenter l'usage
+
+```typescript
+import { incrementUsage } from "@/lib/autumn";
+
+export async function afterAnalysis(orgId: string) {
+  // Incrémenter le compteur de transactions
+  await incrementUsage(orgId);
+}
+```
+
+### 3. Récupérer les données de billing
+
+```typescript
+import { getBillingData } from "@/lib/autumn";
+
+export async function BillingPage() {
+  const orgId = await getCurrentOrganizationId();
+  const billing = await getBillingData(orgId);
+
+  return (
+    <div>
+      <p>Plan: {billing.plan}</p>
+      <p>Usage: {billing.usage.transactions}/{billing.usage.limit}</p>
+      <p>Status: {billing.status}</p>
+    </div>
+  );
+}
+```
+
+### 4. Portail de billing
+
+```typescript
+import { getBillingPortalUrl } from "@/lib/autumn";
+
+export async function openBillingPortal(orgId: string) {
+  const url = await getBillingPortalUrl(orgId);
+  window.location.href = url;
+}
+```
+
+## API Routes Autumn
+
+### `/api/autumn/[...all]/route.ts`
+
+Proxy vers l'API Autumn pour les opérations client-side:
+
+```typescript
+import { autumn } from "@/lib/autumn";
+
+export async function GET(req: Request) {
+  // Forward requests to Autumn API
+  return autumn.proxy(req);
+}
+
+export const POST = GET;
+```
+
+Permet d'utiliser le client Autumn côté frontend via `AutumnProvider`.
+
+## Provider React
+
+### Configuration (`lib/context/providers.tsx`)
+
+```tsx
+import { AutumnProvider } from "autumn-js/react";
+
+<AutumnProvider
+  includeCredentials
+  betterAuthUrl={process.env.BETTER_AUTH_URL}
+>
+  {children}
+</AutumnProvider>
+```
+
+### Utilisation côté client
+
+```tsx
+"use client";
+
+import { useAutumn } from "autumn-js/react";
+
+export function UsageWidget() {
+  const { customer, isLoading } = useAutumn();
+
+  if (isLoading) return <Spinner />;
+
+  const activeProduct = customer?.products.find(
+    p => p.status === "active"
+  );
+
+  return <div>Plan: {activeProduct?.name}</div>;
+}
+```
+
+## Intégration Better Auth
+
+Le plugin Autumn dans Better Auth synchronise automatiquement:
+
+```typescript
+// lib/auth/auth.server.ts
+autumn({
+  secretKey: process.env.AUTUMN_SECRET_KEY,
+  customerScope: "organization",
+  identify: async (req) => {
+    return {
+      customerId: req.organization.id,
+      customerData: req.organization,
+    };
+  },
+})
+```
+
+**Avantages**:
+- Création automatique des customers lors de la création d'organizations
+- Synchronisation des données organization → customer
+- Pas de gestion manuelle de la synchronisation
+
+## Gestion des upgrades/downgrades
+
+Les changements de plan sont gérés par Autumn via le billing portal:
+
+```typescript
+// Ouvrir le portal pour changer de plan
+const url = await getBillingPortalUrl(organizationId);
+// Rediriger l'utilisateur vers l'URL
+```
+
+Autumn gère:
+- Proration automatique
+- Changements de limites
+- Factures et paiements
+- Webhooks de synchronisation
+
+## Fail-Safe Strategy
+
+Le code inclut un fail-safe pour garantir la disponibilité:
+
+```typescript
+export async function checkTransactionsLimit(organizationId: string) {
+  try {
+    const response = await autumn.check({...});
+    return {
+      allowed: response.data?.allowed,
+      used: response.data?.balance,
+      limit: response.data?.included_usage,
+    };
+  } catch (error) {
+    console.error("Error checking Autumn limits:", error);
+    // Fail open - autoriser si Autumn est down
+    return {
+      allowed: true,
+      used: 0,
+      limit: 999999,
+    };
+  }
+}
+```
+
+**Principe**: En cas d'erreur Autumn, on autorise l'opération plutôt que de bloquer l'utilisateur.
+
+## Bonnes Pratiques
+
+1. **Toujours vérifier les limites** avant les opérations consommatrices
+2. **Incrémenter l'usage** après une opération réussie
+3. **Logger les erreurs** Autumn mais ne pas bloquer l'app
+4. **Utiliser le billing portal** pour les changements de plan (ne pas gérer manuellement)
+5. **Afficher l'usage** aux utilisateurs pour transparence
+6. **Tester le comportement** quand limites atteintes
+7. **Gérer gracefully** les transitions de plan (pro-rated)
+
+## Limites par feature
+
+### Usage consommable (single_use)
+```typescript
+const response = await autumn.check({
+  customer_id: orgId,
+  feature_id: transactions.id,
+});
+
+const { allowed, balance, included_usage } = response.data;
+// allowed: true/false
+// balance: usage actuel
+// included_usage: limite du plan
+```
+
+### Feature boolean
+```typescript
+const hasApiAccess = customer.products
+  .find(p => p.status === "active")
+  ?.features.some(f => f.id === "api_access");
+```
+
+### Tracking usage
+```typescript
+await autumn.track({
+  customer_id: orgId,
+  feature_id: "transactions",
+  value: 1, // Incrémenter de 1
+});
+```
+
+## Variables d'environnement
+
+```env
+AUTUMN_SECRET_KEY=your_secret_key
+```
+
+**⚠️ Important**: Ne JAMAIS exposer `AUTUMN_SECRET_KEY` côté client.
+Utiliser le proxy API `/api/autumn/[...all]` pour les opérations client-side.

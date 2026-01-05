@@ -1,0 +1,344 @@
+---
+description: Authentification avec Better Auth - Configuration et patterns
+globs: ["lib/auth/**/*.ts", "app/(auth)/**/*.tsx"]
+---
+
+# Authentification - Better Auth
+
+## ⚠️ Important: Better Auth ≠ NextAuth
+
+Ce projet utilise **Better Auth** (package `better-auth`), PAS NextAuth/Auth.js.
+Ne JAMAIS confondre les deux - ce sont des packages complètement différents avec des APIs différentes.
+
+## Configuration
+
+### Server-side (`lib/auth/auth.server.ts`)
+
+```typescript
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { organization, twoFactor } from "better-auth/plugins";
+import { nextCookies } from "better-auth/next-js";
+import { autumn } from "autumn-js/better-auth";
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, { provider: "pg" }),
+  
+  emailAndPassword: {
+    enabled: true,
+  },
+  
+  plugins: [
+    nextCookies(),           // Gestion des cookies Next.js
+    organization({...}),     // Multi-tenancy
+    twoFactor(),             // 2FA
+    autumn({...}),           // Intégration billing
+  ],
+});
+
+// Export des types
+export type AuthSession = typeof auth.$Infer.Session;
+export type AuthOrganization = typeof auth.$Infer.Organization;
+```
+
+### Client-side (`lib/auth/auth.client.ts`)
+
+```typescript
+import { createAuthClient } from "better-auth/react";
+import { organizationClient } from "better-auth/client/plugins";
+import { twoFactorClient } from "better-auth/client/plugins";
+
+export const authClient = createAuthClient({
+  baseURL: process.env.BETTER_AUTH_URL,
+  plugins: [
+    organizationClient(),
+    twoFactorClient(),
+  ],
+});
+```
+
+## Plugins Activés
+
+### 1. Organization (Multi-tenancy)
+- Chaque utilisateur peut appartenir à plusieurs organizations
+- CRUD d'organizations via `authClient.organization.*`
+- Gestion des membres et invitations
+- Champs personnalisés ajoutés (phoneNumber, notifications, trial, etc.)
+
+### 2. Two-Factor Authentication
+- TOTP (Google Authenticator, etc.)
+- Configuration via `authClient.twoFactor.*`
+
+### 3. Autumn Integration
+- Synchronisation automatique user → customer Autumn
+- Scope: `customerScope: "organization"` (billing par org)
+- Identification automatique lors des requêtes
+
+### 4. Next.js Cookies
+- Gestion sécurisée des sessions
+- Cookies httpOnly
+- Compatible avec les Server Components
+
+## Routes d'authentification
+
+### Structure
+```
+/app/(auth)
+  /sign-in      - Connexion
+  /sign-up      - Inscription
+  /forgot-password  - Mot de passe oublié
+  /reset-password   - Réinitialisation
+  layout.tsx    - Layout commun auth pages
+```
+
+### API Route Handler
+```typescript
+// app/api/auth/[...all]/route.ts
+import { auth } from "@/lib/auth/auth.server";
+import { toNextJsHandler } from "better-auth/next-js";
+
+export const { GET, POST } = toNextJsHandler(auth);
+```
+
+## Patterns d'utilisation
+
+### Server Components (Server-side)
+
+```typescript
+import { auth } from "@/lib/auth/auth.server";
+import { headers } from "next/headers";
+
+export default async function Page() {
+  // Récupérer la session
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    redirect("/sign-in");
+  }
+
+  // Accès aux données user/organization
+  const { user, session: sessionData } = session;
+  
+  return <div>Hello {user.name}</div>;
+}
+```
+
+### Client Components (Client-side)
+
+```typescript
+"use client";
+
+import { authClient } from "@/lib/auth/auth.client";
+
+export function ProfileButton() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) return <div>Loading...</div>;
+  if (!session) return <a href="/sign-in">Sign In</a>;
+
+  return <div>Hello {session.user.name}</div>;
+}
+```
+
+### Server Actions
+
+```typescript
+"use server";
+
+import { auth } from "@/lib/auth/auth.server";
+import { headers } from "next/headers";
+
+export async function myAction() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  // Logique métier...
+}
+```
+
+## Gestion des Organizations
+
+### Récupérer l'organization active
+
+```typescript
+"use client";
+
+import { authClient } from "@/lib/auth/auth.client";
+
+export function useCurrentOrganization() {
+  const { data: session } = authClient.useSession();
+  return session?.user.organization; // Organization active
+}
+```
+
+### Créer une organization
+
+```typescript
+await authClient.organization.create({
+  name: "My Company",
+  slug: "my-company",
+});
+```
+
+### Lister les organizations
+
+```typescript
+const { data: orgs } = authClient.organization.list();
+```
+
+### Changer d'organization active
+
+```typescript
+await authClient.organization.setActive({
+  organizationId: "org-123",
+});
+```
+
+### Inviter un membre
+
+```typescript
+await authClient.organization.inviteMember({
+  email: "user@example.com",
+  role: "member",
+  organizationId: "org-123",
+});
+```
+
+## Hooks React utiles
+
+### `useSession()`
+```typescript
+const { data: session, isPending, error } = authClient.useSession();
+```
+
+### `useActiveOrganization()`
+```typescript
+const { data: org, isPending } = authClient.organization.useActiveOrganization();
+```
+
+### Sign Out
+```typescript
+const handleSignOut = async () => {
+  await authClient.signOut();
+  router.push("/sign-in");
+};
+```
+
+## Protection des routes
+
+### Middleware Pattern (Server Components)
+```typescript
+async function requireAuth() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    redirect("/sign-in");
+  }
+
+  return session;
+}
+
+export default async function ProtectedPage() {
+  const session = await requireAuth();
+  // ...
+}
+```
+
+### Client-side Protection
+```typescript
+"use client";
+
+export function ProtectedComponent() {
+  const { data: session, isPending } = authClient.useSession();
+
+  if (isPending) return <Spinner />;
+  if (!session) {
+    redirect("/sign-in");
+    return null;
+  }
+
+  return <div>Protected content</div>;
+}
+```
+
+## Types Better Auth
+
+### Session Type
+```typescript
+import type { AuthSession } from "@/lib/auth/auth.server";
+
+// AuthSession contient:
+{
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    // ...
+  };
+  session: {
+    id: string;
+    userId: string;
+    expiresAt: Date;
+    // ...
+  };
+}
+```
+
+### Organization Type
+```typescript
+import type { AuthOrganization } from "@/lib/auth/auth.server";
+
+// Avec champs personnalisés
+{
+  id: string;
+  name: string;
+  slug: string;
+  phoneNumber?: string;
+  smsNotifications?: boolean;
+  emailNotifications?: boolean;
+  trialEndsAt?: Date;
+  trialStartedAt?: Date;
+  // ...
+}
+```
+
+## Autumn Integration
+
+Better Auth est configuré avec le plugin Autumn pour synchroniser automatiquement:
+
+```typescript
+autumn({
+  secretKey: process.env.AUTUMN_SECRET_KEY,
+  customerScope: "organization", // Billing par organization
+  identify: async (req) => {
+    return {
+      customerId: req.organization.id,
+      customerData: req.organization,
+    };
+  },
+})
+```
+
+Cela signifie:
+- Chaque organization = 1 customer Autumn
+- Synchronisation automatique lors des actions auth
+- Pas besoin de créer manuellement les customers
+
+## Bonnes Pratiques
+
+1. **Toujours typer** les sessions avec `AuthSession`
+2. **Vérifier la session** dans les Server Actions et API Routes
+3. **Utiliser `requireAuth()`** pour les pages protégées
+4. **Filtrer par organizationId** dans toutes les queries DB
+5. **Ne jamais exposer** `BETTER_AUTH_SECRET` au client
+6. **Utiliser hooks Better Auth** au lieu de state management custom
+7. **Tester** l'isolation multi-tenant (ne pas fuiter de données!)

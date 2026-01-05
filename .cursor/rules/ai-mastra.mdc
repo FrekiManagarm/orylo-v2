@@ -1,0 +1,439 @@
+---
+description: Intégration Mastra.ai pour les agents d'analyse de fraude
+globs: ["lib/agents/**/*.ts", "lib/workflows/**/*.ts"]
+---
+
+# AI & Agents - Mastra.ai
+
+## Vue d'ensemble
+
+Orylo utilise **Mastra.ai** pour l'analyse intelligente de fraude via des agents AI et des workflows.
+
+## Stack Mastra
+
+- `@mastra/core`: Framework principal
+- `@mastra/ai-sdk`: Intégration Vercel AI SDK
+- `@mastra/evals`: Évaluation des performances des agents
+- `@mastra/libsql`: Storage pour mémoire des agents
+- `@ai-sdk/openai`: Provider OpenAI (GPT-4, GPT-4o-mini)
+
+## Architecture des Agents
+
+### Types d'agents
+
+1. **Fraud Analysis Agent**: Agent principal d'analyse de fraude
+2. **Risk Scoring Agent**: Calcul du score de risque
+3. **Pattern Detection Agent**: Détection de patterns de fraude
+4. **Customer Reputation Agent**: Analyse de la réputation client
+
+### Pattern de définition
+
+```typescript
+import { Agent } from "@mastra/core";
+import { openai } from "@ai-sdk/openai";
+
+export const fraudAgent = new Agent({
+  name: "fraud-analyzer",
+  model: openai("gpt-4o"),
+  instructions: `
+    You are a fraud detection expert. Analyze payment transactions
+    and provide a risk assessment with:
+    - Risk score (0-100)
+    - Recommendation (accept/review/block)
+    - Detailed reasoning
+    - Specific fraud signals detected
+  `,
+  tools: [
+    checkCustomerHistory,
+    analyzeIPReputation,
+    detectCardTesting,
+  ],
+});
+```
+
+## Signals de Fraude
+
+Les agents analysent plusieurs catégories de signaux:
+
+### 1. Signaux de transaction
+```typescript
+interface TransactionSignals {
+  amount: number;
+  currency: string;
+  isInternational: boolean;
+  isHighValue: boolean; // > seuil défini
+  velocityScore: number; // Nb transactions récentes
+}
+```
+
+### 2. Signaux client
+```typescript
+interface CustomerSignals {
+  isNewCustomer: boolean;
+  previousTransactions: number;
+  chargebackHistory: number;
+  accountAge: number; // jours
+  emailReputation: "good" | "suspicious" | "bad";
+}
+```
+
+### 3. Signaux techniques
+```typescript
+interface TechnicalSignals {
+  ipAddress: string;
+  ipCountry: string;
+  ipRiskScore: number;
+  vpnDetected: boolean;
+  deviceFingerprint: string;
+  userAgent: string;
+}
+```
+
+### 4. Signaux Stripe Radar
+```typescript
+interface RadarSignals {
+  riskLevel: "normal" | "elevated" | "highest";
+  riskScore: number;
+  radarRules: string[];
+  cvcCheck: "pass" | "fail" | "unavailable";
+  avsCheck: "pass" | "fail" | "unavailable";
+}
+```
+
+## Workflows d'analyse
+
+### Workflow principal
+
+```typescript
+import { Workflow } from "@mastra/core";
+
+export const fraudAnalysisWorkflow = new Workflow({
+  name: "fraud-analysis",
+  steps: [
+    {
+      id: "collect-signals",
+      run: async (context) => {
+        return await collectAllSignals(context.paymentIntent);
+      },
+    },
+    {
+      id: "analyze-risk",
+      run: async (context) => {
+        const analysis = await fraudAgent.generate({
+          messages: [
+            {
+              role: "user",
+              content: formatSignalsForAnalysis(context.signals),
+            },
+          ],
+        });
+        return analysis;
+      },
+    },
+    {
+      id: "apply-rules",
+      run: async (context) => {
+        // Appliquer les règles custom de l'organization
+        const rules = await getOrganizationRules(context.organizationId);
+        return applyRules(rules, context.analysis);
+      },
+    },
+    {
+      id: "decide-action",
+      run: async (context) => {
+        // Décision finale: accept/review/block
+        return decideFinalAction(context);
+      },
+    },
+  ],
+});
+```
+
+## Tools pour les Agents
+
+### Exemple de tool
+
+```typescript
+import { tool } from "ai";
+import { z } from "zod";
+
+export const checkCustomerHistory = tool({
+  description: "Check customer's transaction history for fraud patterns",
+  parameters: z.object({
+    customerId: z.string(),
+  }),
+  execute: async ({ customerId }) => {
+    const history = await db.query.fraudAnalyses.findMany({
+      where: eq(fraudAnalyses.customerId, customerId),
+      limit: 50,
+      orderBy: desc(fraudAnalyses.createdAt),
+    });
+
+    return {
+      totalTransactions: history.length,
+      fraudCount: history.filter((h) => h.actualFraud).length,
+      averageAmount: calculateAverage(history.map((h) => h.amount)),
+      recentChargebacks: history.filter(
+        (h) => h.action === "refunded"
+      ).length,
+    };
+  },
+});
+```
+
+## Évaluations (Evals)
+
+### Pourquoi les evals ?
+
+Les evals permettent de:
+- Mesurer la précision des agents (accuracy, precision, recall)
+- Détecter les faux positifs/négatifs
+- Comparer différents modèles (GPT-4 vs GPT-4o-mini vs Claude)
+- Améliorer itérativement les prompts
+
+### Pattern d'eval
+
+```typescript
+import { Eval } from "@mastra/evals";
+
+export const fraudEval = new Eval({
+  name: "fraud-detection-accuracy",
+  dataset: "fraud_test_cases.json",
+  evaluate: async (testCase) => {
+    const result = await fraudAgent.generate({
+      messages: [
+        { role: "user", content: formatTestCase(testCase) },
+      ],
+    });
+
+    const predicted = result.recommendation;
+    const actual = testCase.expectedRecommendation;
+
+    return {
+      correct: predicted === actual,
+      predicted,
+      actual,
+      confidence: result.riskScore,
+    };
+  },
+  metrics: ["accuracy", "precision", "recall", "f1"],
+});
+```
+
+## Modèles disponibles
+
+### OpenAI Models
+
+```typescript
+import { openai } from "@ai-sdk/openai";
+
+// GPT-4o (plus performant, plus cher)
+const gpt4o = openai("gpt-4o");
+
+// GPT-4o-mini (rapide, moins cher, bon pour la plupart des cas)
+const gpt4oMini = openai("gpt-4o-mini");
+
+// GPT-4 Turbo
+const gpt4Turbo = openai("gpt-4-turbo");
+```
+
+### Choix du modèle
+
+- **gpt-4o-mini**: Par défaut pour analyses standard (bon rapport qualité/prix)
+- **gpt-4o**: Pour analyses complexes ou clients premium
+- **gpt-4-turbo**: Legacy, préférer gpt-4o
+
+Le modèle utilisé est stocké dans `fraudAnalyses.aiModel`.
+
+## Génération d'explications AI
+
+Les agents peuvent générer des explications détaillées pour les utilisateurs:
+
+```typescript
+export async function generateAIExplanation(analysis: FraudAnalysis) {
+  const explanation = await fraudAgent.generate({
+    messages: [
+      {
+        role: "system",
+        content: "Generate a user-friendly explanation of the fraud analysis",
+      },
+      {
+        role: "user",
+        content: JSON.stringify({
+          riskScore: analysis.riskScore,
+          signals: analysis.signals,
+          recommendation: analysis.recommandation,
+        }),
+      },
+    ],
+  });
+
+  await db
+    .update(fraudAnalyses)
+    .set({
+      aiExplanation: explanation.text,
+      aiGeneratedAt: new Date(),
+      aiModel: "gpt-4o-mini",
+    })
+    .where(eq(fraudAnalyses.id, analysis.id));
+
+  return explanation.text;
+}
+```
+
+## Streaming
+
+Pour une meilleure UX, utiliser le streaming:
+
+```typescript
+import { streamText } from "ai";
+
+export async function streamFraudAnalysis(signals: FraudSignals) {
+  const stream = await streamText({
+    model: openai("gpt-4o-mini"),
+    messages: [
+      {
+        role: "user",
+        content: `Analyze these fraud signals: ${JSON.stringify(signals)}`,
+      },
+    ],
+  });
+
+  return stream.toDataStreamResponse();
+}
+```
+
+Côté client:
+
+```tsx
+"use client";
+
+import { useChat } from "ai/react";
+
+export function FraudAnalysisStream() {
+  const { messages, isLoading } = useChat({
+    api: "/api/fraud-analysis",
+  });
+
+  return (
+    <div>
+      {messages.map((m) => (
+        <div key={m.id}>{m.content}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Mémoire des agents
+
+Utilisation de `@mastra/libsql` pour la mémoire:
+
+```typescript
+import { Memory } from "@mastra/core";
+import { LibSQLMemory } from "@mastra/libsql";
+
+export const agentMemory = new LibSQLMemory({
+  url: process.env.LIBSQL_URL,
+  authToken: process.env.LIBSQL_AUTH_TOKEN,
+});
+
+// Ajouter à l'agent
+export const fraudAgent = new Agent({
+  name: "fraud-analyzer",
+  model: openai("gpt-4o"),
+  memory: agentMemory,
+  // ...
+});
+```
+
+Permet aux agents de:
+- Se souvenir des interactions précédentes
+- Apprendre des patterns de fraude spécifiques
+- Contextualiser les analyses
+
+## Gestion des coûts
+
+### Stratégies d'optimisation
+
+1. **Modèle par défaut**: Utiliser gpt-4o-mini
+2. **Cache des résultats**: Éviter de ré-analyser la même transaction
+3. **Prompt engineering**: Prompts précis pour réduire les tokens
+4. **Fallback**: Si budget dépassé, utiliser heuristiques simples
+
+### Tracking des coûts
+
+```typescript
+interface AIUsageMetrics {
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalCost: number; // USD
+}
+
+// Stocker dans fraudAnalyses ou table séparée
+```
+
+## Règles personnalisées vs AI
+
+L'architecture combine:
+
+1. **Règles déterministes** (rapides, prévisibles)
+   - Seuils de montant
+   - Listes noires/blanches
+   - Règles métier simples
+
+2. **AI Agents** (intelligents, contextuels)
+   - Analyse de patterns complexes
+   - Détection d'anomalies
+   - Explications naturelles
+
+### Flow hybride
+
+```typescript
+export async function analyzeTransaction(signals: FraudSignals) {
+  // 1. Règles rapides
+  const ruleResult = await applyQuickRules(signals);
+  if (ruleResult.action === "block") {
+    return { action: "block", reason: ruleResult.reason };
+  }
+
+  // 2. AI Analysis (si rules inconclusives)
+  const aiAnalysis = await fraudAgent.analyze(signals);
+
+  // 3. Combiner les résultats
+  return combineRuleAndAI(ruleResult, aiAnalysis);
+}
+```
+
+## Observabilité
+
+Mastra offre de l'observabilité intégrée:
+
+```typescript
+import { observability } from "@mastra/observability";
+
+// Tracer les exécutions d'agents
+observability.trace("fraud-analysis", async (span) => {
+  span.setAttribute("organizationId", orgId);
+  span.setAttribute("amount", amount);
+
+  const result = await fraudAgent.generate({...});
+
+  span.setAttribute("riskScore", result.riskScore);
+  span.end();
+
+  return result;
+});
+```
+
+## Bonnes Pratiques
+
+1. **Prompts versionnés**: Tracker les changements de prompts
+2. **A/B Testing**: Comparer différentes approches
+3. **Evals continus**: Mesurer la qualité en production
+4. **Fallbacks**: Toujours avoir un plan B si AI échoue
+5. **Caching intelligent**: Réduire les coûts
+6. **Monitoring**: Surveiller latence et coûts
+7. **User feedback**: Collecter les feedbacks (actualFraud, falsePositive)
+8. **Iterative improvement**: Utiliser les feedbacks pour améliorer les prompts

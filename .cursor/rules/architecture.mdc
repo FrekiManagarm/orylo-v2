@@ -1,0 +1,169 @@
+---
+description: Architecture générale et stack technique du projet Orylo
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+# Architecture & Stack Technique - Orylo v2
+
+## Vue d'ensemble
+
+Orylo est une plateforme SaaS de prévention de fraude pour les paiements Stripe, construite avec Next.js 16 (App Router) et TypeScript. Le projet utilise une architecture moderne serverless avec un focus sur la performance et l'expérience utilisateur.
+
+## Stack Technique Principale
+
+### Frontend
+- **Framework**: Next.js 16.1.1 (App Router)
+- **React**: 19.2.3
+- **TypeScript**: 5.x
+- **Styling**: Tailwind CSS v4 + class-variance-authority
+- **UI Components**: shadcn/ui (composants dans `/components/ui`)
+- **State Management**: 
+  - Zustand (state global)
+  - TanStack Query v5 (gestion serveur state)
+  - nuqs (URL state management)
+- **Animations**: Framer Motion 12.x
+- **Icons**: Phosphor Icons
+
+### Backend
+- **Runtime**: Next.js API Routes (App Router)
+- **Database**: PostgreSQL via Neon (serverless)
+- **ORM**: Drizzle ORM 0.45.x
+- **Authentification**: Better Auth 1.4.9 (NOT NextAuth)
+- **Billing/Usage**: Autumn.js 0.1.63 (usage-based billing)
+- **Payment Processing**: Stripe (Connect API)
+- **AI/ML**: Mastra.ai (agents, evals, workflows)
+
+### Infrastructure
+- **Hosting**: Vercel (configuré dans vercel.json)
+- **Package Manager**: Bun 1.2.3 (**TOUJOURS utiliser bun**)
+- **Database Migrations**: Drizzle Kit
+
+## Architecture des dossiers
+
+```
+/app
+  /(auth)           # Routes d'authentification (sign-in, sign-up, etc.)
+  /(marketing)      # Pages publiques (about, blog, contact, etc.)
+  /api              # API Routes
+    /auth           # Endpoints Better Auth
+    /autumn         # Endpoints Autumn.js (billing)
+    /fraud-analyses # API métier
+    /stripe         # Webhooks et intégrations Stripe
+    /webhooks       # Webhooks externes
+
+/lib
+  /auth             # Configuration Better Auth
+  /db               # Database setup et schemas Drizzle
+    /schemas        # Tous les schémas de tables
+  /actions          # Server Actions Next.js
+  /context          # React Context Providers
+  /blog             # Gestion du blog (Fumadocs)
+
+/components
+  /ui               # Composants shadcn/ui
+  /*.tsx            # Composants métier réutilisables
+
+/content
+  /blog             # Articles de blog (MDX)
+  /docs             # Documentation (Fumadocs)
+```
+
+## Principes d'Architecture
+
+### 1. App Router (Next.js 16)
+- **Routes groupées**: Utilisation de `(auth)` et `(marketing)` pour organiser sans affecter les URLs
+- **Server Components par défaut**: Utiliser `"use client"` uniquement quand nécessaire
+- **Nested Layouts**: Routes imbriquées (pas de flat routes)
+
+### 2. Type Safety
+- TypeScript strict activé
+- Utilisation de Zod pour la validation runtime
+- Types générés automatiquement depuis Drizzle schemas
+- Inférence de types Better Auth avec `$Infer`
+
+### 3. Separation of Concerns
+- **Server Actions** dans `/lib/actions` pour la logique métier serveur
+- **API Routes** pour les endpoints externes (webhooks, intégrations)
+- **Client Components** uniquement pour l'interactivité
+- **Context Providers** regroupés dans `/lib/context/providers.tsx`
+
+### 4. Performance
+- Server Components pour réduire le bundle JS
+- Streaming et Suspense pour l'UI
+- TanStack Query pour le cache et la synchronisation
+- Images optimisées avec next/image
+
+## Variables d'environnement requises
+
+```env
+# Database
+DATABASE_URL=postgresql://...
+
+# Authentication (Better Auth)
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=...
+
+# Billing (Autumn.js)
+AUTUMN_SECRET_KEY=...
+
+# Stripe
+STRIPE_CONNECT_CLIENT_ID=...
+STRIPE_WEBHOOK_SECRET=...
+STRIPE_TEST_KEY=...
+
+# AI (OpenAI pour Mastra)
+OPENAI_API_KEY=...
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+## Patterns de développement
+
+### Server Components (par défaut)
+```tsx
+// Pas de "use client" - accès direct aux données
+export default async function Page() {
+  const data = await db.select().from(table);
+  return <div>{data}</div>;
+}
+```
+
+### Client Components (interactivité)
+```tsx
+"use client";
+
+import { useState } from "react";
+
+export function InteractiveComponent() {
+  const [state, setState] = useState();
+  // ... logique client
+}
+```
+
+### Server Actions
+```tsx
+"use server";
+
+export async function myAction(formData: FormData) {
+  // Validation avec Zod
+  // Logique métier
+  // Retour de données ou revalidation
+}
+```
+
+## Multi-tenancy (Organizations)
+
+Le projet utilise le plugin `organization` de Better Auth pour gérer le multi-tenancy:
+- Chaque utilisateur peut appartenir à plusieurs organisations
+- Les données métier (fraud analyses, rules, etc.) sont isolées par organization
+- Billing et usage tracking au niveau organization (via Autumn.js)
+
+## Conventions de nommage
+
+- **Fichiers**: kebab-case (`fraud-analyses.ts`)
+- **Composants**: PascalCase (`FraudAnalysisCard.tsx`)
+- **Fonctions/Variables**: camelCase (`getFraudAnalysis`)
+- **Types**: PascalCase (`FraudAnalysis`, `NewFraudAnalysis`)
+- **Constantes**: SCREAMING_SNAKE_CASE (`MAX_RETRIES`)
+- **Routes API**: kebab-case (`/api/fraud-analyses/[id]`)

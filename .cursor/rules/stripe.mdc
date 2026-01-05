@@ -1,0 +1,318 @@
+---
+description: Intégration Stripe Connect et gestion des webhooks
+globs: ["app/api/stripe/**/*.ts", "app/api/webhooks/**/*.ts"]
+---
+
+# Intégration Stripe
+
+## Vue d'ensemble
+
+Orylo utilise **Stripe Connect** pour permettre aux utilisateurs de connecter leurs comptes Stripe et analyser les transactions en temps réel.
+
+## Architecture Stripe Connect
+
+### Flow de connexion
+
+1. **Initiation** (`/api/stripe/connect/start`)
+   - L'utilisateur démarre le processus de connexion
+   - Redirection vers Stripe OAuth
+
+2. **Callback** (`/api/stripe/connect/callback`)
+   - Stripe redirige après autorisation
+   - Récupération du `account_id` et stockage en DB
+
+3. **Status** (`/api/stripe/connect/status`)
+   - Vérification de l'état de connexion
+   - Récupération des infos du compte
+
+4. **Disconnect** (`/api/stripe/connect/disconnect`)
+   - Déconnexion du compte Stripe
+   - Suppression des données de connexion
+
+## Database Schema
+
+```typescript
+// lib/db/schemas/stripeConnections.ts
+export const stripeConnections = pgTable("stripe_connections", {
+  id: text("id").primaryKey(),
+  organizationId: text("organizationId")
+    .notNull()
+    .references(() => organization.id),
+  stripeAccountId: text("stripeAccountId").notNull().unique(),
+  accessToken: text("accessToken"), // Encrypted
+  refreshToken: text("refreshToken"), // Encrypted
+  scope: text("scope"),
+  livemode: boolean("livemode").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+```
+
+**Important**: Les tokens sont sensibles et doivent être chiffrés.
+
+## Webhooks
+
+### Structure
+
+Les webhooks Stripe sont configurés par compte connecté:
+
+```
+/api/webhooks/stripe/[accountId]/route.ts
+```
+
+### Traitement des webhooks
+
+```typescript
+import Stripe from "stripe";
+import { headers } from "next/headers";
+
+export async function POST(
+  request: Request,
+  { params }: { params: { accountId: string } }
+) {
+  const body = await request.text();
+  const signature = request.headers.get("stripe-signature");
+
+  // 1. Vérifier la signature
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      signature!,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch (err) {
+    return new Response("Invalid signature", { status: 400 });
+  }
+
+  // 2. Logger l'événement
+  await logWebhookEvent(params.accountId, event);
+
+  // 3. Traiter selon le type
+  switch (event.type) {
+    case "payment_intent.created":
+      await handlePaymentIntentCreated(event.data.object);
+      break;
+
+    case "payment_intent.succeeded":
+      await handlePaymentIntentSucceeded(event.data.object);
+      break;
+
+    case "charge.dispute.created":
+      await handleDisputeCreated(event.data.object);
+      break;
+
+    // Autres événements...
+  }
+
+  return new Response("OK", { status: 200 });
+}
+```
+
+## Événements Stripe surveillés
+
+### Payment Intents
+- `payment_intent.created`: Nouvelle tentative de paiement → Analyse de fraude
+- `payment_intent.succeeded`: Paiement réussi → Mise à jour du statut
+- `payment_intent.payment_failed`: Échec de paiement → Tracking
+
+### Disputes (Chargebacks)
+- `charge.dispute.created`: Nouveau chargeback → Alerte
+- `charge.dispute.updated`: Mise à jour dispute
+- `charge.dispute.closed`: Dispute résolue
+
+### Refunds
+- `charge.refunded`: Remboursement → Update analysis
+
+### Card Testing
+- `radar.early_fraud_warning.created`: Alerte radar Stripe
+
+## Analyse de fraude (Core Business)
+
+### Déclenchement
+
+Lors d'un `payment_intent.created`:
+
+```typescript
+async function handlePaymentIntentCreated(paymentIntent: Stripe.PaymentIntent) {
+  // 1. Récupérer l'organization du compte Stripe
+  const connection = await getStripeConnection(paymentIntent.account);
+  
+  // 2. Vérifier les limites Autumn
+  const { allowed } = await checkTransactionsLimit(connection.organizationId);
+  if (!allowed) {
+    console.warn("Transaction limit reached");
+    return;
+  }
+
+  // 3. Extraire les signaux de fraude
+  const signals = {
+    amount: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    customer: paymentIntent.customer,
+    metadata: paymentIntent.metadata,
+    // Signaux Stripe Radar
+    riskLevel: paymentIntent.charges?.data[0]?.outcome?.risk_level,
+    riskScore: paymentIntent.charges?.data[0]?.outcome?.risk_score,
+    // IP, email, etc.
+  };
+
+  // 4. Appeler l'agent Mastra d'analyse
+  const analysis = await analyzeFraud(signals);
+
+  // 5. Sauvegarder l'analyse
+  await db.insert(fraudAnalyses).values({
+    organizationId: connection.organizationId,
+    paymentIntentId: paymentIntent.id,
+    customerId: paymentIntent.customer,
+    amount: paymentIntent.amount,
+    currency: paymentIntent.currency,
+    riskScore: analysis.riskScore,
+    recommandation: analysis.recommendation,
+    reasoning: analysis.reasoning,
+    signals: signals,
+    agentsUsed: analysis.agentsUsed,
+  });
+
+  // 6. Incrémenter l'usage Autumn
+  await incrementUsage(connection.organizationId);
+
+  // 7. Action automatique (si configuré)
+  if (analysis.recommendation === "block") {
+    await stripe.paymentIntents.cancel(paymentIntent.id, {
+      stripeAccount: connection.stripeAccountId,
+    });
+  }
+}
+```
+
+## Configuration Stripe
+
+### Initialisation
+
+```typescript
+import Stripe from "stripe";
+
+export const stripe = new Stripe(process.env.STRIPE_TEST_KEY!, {
+  apiVersion: "2024-12-18.acacia", // Version figée
+});
+```
+
+### Connect OAuth URLs
+
+```typescript
+const STRIPE_CONNECT_URL = "https://connect.stripe.com/oauth/authorize";
+
+const authUrl = `${STRIPE_CONNECT_URL}?${new URLSearchParams({
+  response_type: "code",
+  client_id: process.env.STRIPE_CONNECT_CLIENT_ID!,
+  scope: "read_write",
+  redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/connect/callback`,
+  state: organizationId, // Pour la sécurité
+})}`;
+```
+
+## Gestion des erreurs Stripe
+
+```typescript
+try {
+  const paymentIntent = await stripe.paymentIntents.retrieve(id);
+} catch (error) {
+  if (error instanceof Stripe.errors.StripeError) {
+    switch (error.type) {
+      case "StripeInvalidRequestError":
+        // Mauvaise requête
+        break;
+      case "StripeAuthenticationError":
+        // Problème d'auth
+        break;
+      case "StripeAPIError":
+        // Erreur API Stripe
+        break;
+      default:
+        // Autre erreur
+    }
+  }
+  throw error;
+}
+```
+
+## Webhook Logs
+
+Tous les webhooks sont loggés pour audit:
+
+```typescript
+// lib/db/schemas/webhookLogs.ts
+export const webhookLogs = pgTable("webhook_logs", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId").notNull(),
+  eventType: text("eventType").notNull(),
+  eventId: text("eventId").notNull(),
+  payload: jsonb("payload").notNull(),
+  processed: boolean("processed").notNull().default(false),
+  error: text("error"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+```
+
+## Sécurité
+
+### 1. Validation des signatures
+**TOUJOURS** vérifier les signatures Stripe pour les webhooks.
+
+### 2. Isolation multi-tenant
+Vérifier que le `stripeAccountId` appartient à l'organization avant toute opération.
+
+### 3. Tokens chiffrés
+Les `accessToken` et `refreshToken` doivent être chiffrés en DB.
+
+### 4. Scopes minimaux
+Ne demander que les permissions nécessaires (`read_write` pour les payment intents).
+
+## Limites par plan
+
+Via Autumn.js:
+- **Free**: 1 compte Stripe (implicite via limite de connexions)
+- **Pro**: 5 comptes Stripe
+- **Business**: Illimité
+
+Vérification:
+```typescript
+const { allowed } = await autumn.check({
+  customer_id: orgId,
+  feature_id: "stripe_accounts",
+});
+
+if (!allowed) {
+  throw new Error("Limite de comptes Stripe atteinte");
+}
+```
+
+## Testing
+
+### Mode Test vs Live
+
+Stripe Connect supporte deux modes:
+- **Test mode**: `livemode: false`
+- **Live mode**: `livemode: true`
+
+Stocker le mode dans `stripeConnections.livemode`.
+
+### Webhook Testing
+
+Utiliser Stripe CLI pour tester localement:
+
+```bash
+stripe listen --forward-to localhost:3000/api/webhooks/stripe/[accountId]
+```
+
+## Bonnes Pratiques
+
+1. **Idempotence**: Utiliser `event.id` pour éviter les doublons
+2. **Webhooks async**: Traiter rapidement et retourner 200, puis async processing
+3. **Retry logic**: Stripe retry automatiquement (exponentiel backoff)
+4. **Logging**: Logger tous les événements pour audit
+5. **Monitoring**: Surveiller les échecs de webhooks
+6. **Secrets rotation**: Rotating webhook secrets régulièrement
+7. **Rate limiting**: Respecter les limites API Stripe
+8. **Error handling**: Graceful degradation si Stripe est down

@@ -1,0 +1,599 @@
+---
+description: Routing et navigation avec Next.js App Router
+globs: ["app/**/*.tsx", "app/**/layout.tsx", "app/**/page.tsx"]
+---
+
+# Routing & Navigation - Next.js App Router
+
+## Architecture de Routing
+
+Orylo utilise le **Next.js App Router** (Next.js 16) avec une structure **nested routes** (PAS de flat routes).
+
+## Structure des Routes
+
+```
+/app
+  /(auth)              # Route group - Auth pages
+    /sign-in
+      page.tsx         # /sign-in
+    /sign-up
+      page.tsx         # /sign-up
+    /forgot-password
+      page.tsx         # /forgot-password
+    /reset-password
+      page.tsx         # /reset-password
+    layout.tsx         # Layout commun pour auth
+
+  /(marketing)         # Route group - Marketing pages
+    /about
+      page.tsx         # /about
+    /blog
+      page.tsx         # /blog
+      /[slug]
+        page.tsx       # /blog/[slug]
+    /contact
+      page.tsx         # /contact
+    /privacy
+      page.tsx         # /privacy
+    /cgu
+      page.tsx         # /cgu
+
+  /api                 # API Routes
+    /auth/[...all]
+      route.ts         # /api/auth/* (Better Auth)
+    /fraud-analyses
+      route.ts         # /api/fraud-analyses
+      /[id]
+        route.ts       # /api/fraud-analyses/[id]
+    /stripe
+      /connect
+        /start/route.ts      # /api/stripe/connect/start
+        /callback/route.ts   # /api/stripe/connect/callback
+
+  layout.tsx           # Root layout
+  page.tsx             # Homepage (/)
+  globals.css          # Global styles
+```
+
+## Route Groups
+
+### Concept
+
+Les route groups `(name)` permettent d'organiser les routes sans affecter l'URL:
+
+```
+/(auth)/sign-in/page.tsx  →  /sign-in  (pas /(auth)/sign-in)
+```
+
+### Avantages
+
+1. **Organisation logique**: Grouper les pages par fonction
+2. **Layouts différents**: Chaque groupe peut avoir son propre layout
+3. **Pas d'impact URL**: Transparent pour l'utilisateur
+
+### Route Groups du projet
+
+#### `(auth)` - Pages d'authentification
+- Layout minimaliste (pas de nav)
+- Design centré
+- Pages: sign-in, sign-up, forgot-password, reset-password
+
+#### `(marketing)` - Pages publiques
+- Layout avec header/footer
+- Navigation publique
+- Pages: about, blog, contact, privacy, cgu
+
+#### `(main)` - Application principale (à venir)
+- Dashboard
+- Fraud analyses
+- Settings
+- Billing
+
+## Layouts
+
+### Root Layout (`app/layout.tsx`)
+
+```tsx
+import type { Metadata } from "next";
+import { Geist, Outfit } from "next/font/google";
+import "./globals.css";
+
+const outfit = Outfit({ subsets: ['latin'], variable: '--font-sans' });
+
+export const metadata: Metadata = {
+  title: "Orylo - Fraud Prevention",
+  description: "AI-powered fraud detection for Stripe",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="fr" className={outfit.variable}>
+      <body className="antialiased">
+        <Providers>
+          {children}
+        </Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+**Responsabilités**:
+- Définir la structure HTML
+- Charger les fonts
+- Wrapping avec Providers globaux
+- Metadata par défaut
+
+### Group Layout (`app/(auth)/layout.tsx`)
+
+```tsx
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      {children}
+    </div>
+  );
+}
+```
+
+**Responsabilités**:
+- Layout spécifique au groupe
+- Hérite du Root Layout
+- Peut avoir sa propre navigation/footer
+
+## Pages
+
+### Convention
+
+- **Fichier**: `page.tsx`
+- **Export**: `default function` (Server Component par défaut)
+- **Nom**: Descriptif (e.g., `SignInPage`, `BlogPage`)
+
+### Server Component Page (par défaut)
+
+```tsx
+// app/blog/page.tsx
+import { db } from "@/lib/db";
+import { posts } from "@/lib/db/schemas";
+
+export default async function BlogPage() {
+  // Fetch data directement
+  const allPosts = await db.select().from(posts);
+
+  return (
+    <div>
+      <h1>Blog</h1>
+      {allPosts.map((post) => (
+        <article key={post.id}>
+          <h2>{post.title}</h2>
+        </article>
+      ))}
+    </div>
+  );
+}
+```
+
+### Client Component Page
+
+```tsx
+"use client";
+
+import { useState } from "react";
+
+export default function InteractivePage() {
+  const [state, setState] = useState();
+  
+  return <div>Interactive content</div>;
+}
+```
+
+## Dynamic Routes
+
+### Paramètre simple: `[slug]`
+
+```tsx
+// app/blog/[slug]/page.tsx
+export default async function BlogPost({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const post = await getPostBySlug(params.slug);
+
+  return (
+    <article>
+      <h1>{post.title}</h1>
+      <div>{post.content}</div>
+    </article>
+  );
+}
+
+// Générer les chemins statiques
+export async function generateStaticParams() {
+  const posts = await getAllPosts();
+  return posts.map((post) => ({ slug: post.slug }));
+}
+```
+
+### Paramètres multiples
+
+```tsx
+// app/docs/[category]/[page]/page.tsx
+export default function DocPage({
+  params,
+}: {
+  params: { category: string; page: string };
+}) {
+  return <div>{params.category} / {params.page}</div>;
+}
+```
+
+### Catch-all: `[...segments]`
+
+```tsx
+// app/api/auth/[...all]/route.ts
+export async function GET(
+  request: Request,
+  { params }: { params: { all: string[] } }
+) {
+  // params.all = ['session', 'user'] pour /api/auth/session/user
+}
+```
+
+## API Routes
+
+### Convention
+
+- **Fichier**: `route.ts` (ou `route.js`)
+- **Exports**: Fonctions HTTP (GET, POST, PUT, DELETE, PATCH)
+- **Type**: `NextRequest` → `NextResponse`
+
+### Pattern standard
+
+```typescript
+// app/api/my-endpoint/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth/auth.server";
+
+export async function GET(request: NextRequest) {
+  // 1. Authentification
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+
+  if (!session) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+  // 2. Logique métier
+  const data = await getData(session.user.organization.id);
+
+  // 3. Response
+  return NextResponse.json({ data });
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  // ...
+  return NextResponse.json({ success: true });
+}
+```
+
+### Dynamic API Routes
+
+```typescript
+// app/api/fraud-analyses/[id]/route.ts
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const analysis = await getAnalysis(params.id);
+  return NextResponse.json({ analysis });
+}
+```
+
+## Navigation
+
+### `<Link>` Component
+
+```tsx
+import Link from "next/link";
+
+<Link href="/blog">Blog</Link>
+<Link href={`/blog/${post.slug}`}>Read more</Link>
+
+// Avec prefetch désactivé
+<Link href="/dashboard" prefetch={false}>Dashboard</Link>
+```
+
+### `useRouter` Hook
+
+```tsx
+"use client";
+
+import { useRouter } from "next/navigation";
+
+export function MyComponent() {
+  const router = useRouter();
+
+  function navigate() {
+    router.push("/dashboard");
+    // router.replace("/dashboard"); // Sans historique
+    // router.back(); // Retour arrière
+    // router.refresh(); // Revalider les données
+  }
+}
+```
+
+### Redirection Server-side
+
+```tsx
+import { redirect } from "next/navigation";
+
+export default async function ProtectedPage() {
+  const session = await getSession();
+
+  if (!session) {
+    redirect("/sign-in");
+  }
+
+  return <div>Protected content</div>;
+}
+```
+
+## Metadata
+
+### Static Metadata
+
+```tsx
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Page Title",
+  description: "Page description",
+  openGraph: {
+    title: "OG Title",
+    description: "OG Description",
+    images: ["/og-image.jpg"],
+  },
+};
+
+export default function Page() {
+  return <div>Content</div>;
+}
+```
+
+### Dynamic Metadata
+
+```tsx
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  const post = await getPost(params.slug);
+
+  return {
+    title: post.title,
+    description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      images: [post.coverImage],
+    },
+  };
+}
+```
+
+## Loading & Error States
+
+### Loading UI
+
+```tsx
+// app/blog/loading.tsx
+export default function Loading() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Spinner />
+    </div>
+  );
+}
+```
+
+### Error Boundary
+
+```tsx
+// app/blog/error.tsx
+"use client";
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+```
+
+### Not Found
+
+```tsx
+// app/blog/[slug]/not-found.tsx
+export default function NotFound() {
+  return (
+    <div>
+      <h2>Blog post not found</h2>
+      <Link href="/blog">Back to blog</Link>
+    </div>
+  );
+}
+```
+
+Usage:
+
+```tsx
+import { notFound } from "next/navigation";
+
+export default async function BlogPost({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+
+  if (!post) {
+    notFound(); // Déclenche not-found.tsx
+  }
+
+  return <article>{post.content}</article>;
+}
+```
+
+## Parallel Routes
+
+Pour afficher plusieurs sections simultanément:
+
+```
+/app/dashboard
+  /@analytics
+    page.tsx
+  /@activity
+    page.tsx
+  layout.tsx
+  page.tsx
+```
+
+```tsx
+// layout.tsx
+export default function DashboardLayout({
+  children,
+  analytics,
+  activity,
+}: {
+  children: React.ReactNode;
+  analytics: React.ReactNode;
+  activity: React.ReactNode;
+}) {
+  return (
+    <div>
+      {children}
+      <div className="grid grid-cols-2 gap-4">
+        {analytics}
+        {activity}
+      </div>
+    </div>
+  );
+}
+```
+
+## Intercepting Routes
+
+Pour des modals qui préservent l'URL:
+
+```
+/app
+  /photos
+    /[id]
+      page.tsx         # /photos/123
+  /@modal
+    /photos/[id]
+      page.tsx         # Intercept et afficher en modal
+```
+
+## Middleware (Future)
+
+Pour la protection de routes au niveau global:
+
+```typescript
+// middleware.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export function middleware(request: NextRequest) {
+  // Logique d'auth, redirections, etc.
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/api/protected/:path*"],
+};
+```
+
+## Bonnes Pratiques
+
+1. **Server Components par défaut**: N'utiliser "use client" que si nécessaire
+2. **Layouts imbriqués**: Réutiliser les layouts pour éviter la duplication
+3. **Route Groups**: Organiser logiquement sans affecter les URLs
+4. **Metadata**: Toujours définir title et description
+5. **Loading states**: Fournir des loading.tsx pour une meilleure UX
+6. **Error handling**: Gérer les erreurs avec error.tsx
+7. **Static Generation**: Utiliser generateStaticParams quand possible
+8. **Prefetch**: Désactiver si non nécessaire pour économiser les ressources
+9. **Redirections**: Utiliser redirect() côté serveur plutôt que router.push()
+10. **Type Safety**: Typer params et searchParams
+
+## URL Search Params
+
+### Server Component
+
+```tsx
+export default function Page({
+  searchParams,
+}: {
+  searchParams: { query?: string; page?: string };
+}) {
+  const query = searchParams.query || "";
+  const page = Number(searchParams.page) || 1;
+
+  return <div>Search: {query}</div>;
+}
+```
+
+### Client Component (avec nuqs)
+
+```tsx
+"use client";
+
+import { useQueryState } from "nuqs";
+
+export function SearchBar() {
+  const [query, setQuery] = useQueryState("query");
+
+  return (
+    <input
+      value={query || ""}
+      onChange={(e) => setQuery(e.target.value)}
+    />
+  );
+}
+```
+
+## Revalidation
+
+### Time-based
+
+```tsx
+export const revalidate = 3600; // Revalider toutes les heures
+
+export default async function Page() {
+  const data = await fetch("...", { next: { revalidate: 3600 } });
+}
+```
+
+### On-demand
+
+```tsx
+import { revalidatePath, revalidateTag } from "next/cache";
+
+// Dans une Server Action
+export async function updatePost() {
+  await db.update(...);
+  revalidatePath("/blog");
+  revalidateTag("posts");
+}
+```

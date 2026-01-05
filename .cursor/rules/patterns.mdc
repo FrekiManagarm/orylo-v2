@@ -1,0 +1,516 @@
+---
+description: Patterns de code, conventions et bonnes pratiques générales
+globs: ["**/*.ts", "**/*.tsx"]
+---
+
+# Patterns de Code & Conventions
+
+## Langue et Communication
+
+**Règle importante**: Toujours répondre en **français** dans les conversations avec l'utilisateur.
+
+## Package Manager
+
+**TOUJOURS** utiliser **Bun** comme package manager:
+
+```bash
+# ✅ Correct
+bun install
+bun add package-name
+bun run dev
+
+# ❌ Incorrect
+npm install
+yarn add
+pnpm add
+```
+
+## Composants React
+
+### Server Components (par défaut)
+
+```tsx
+// Pas de "use client" directive
+// Accès direct aux données serveur
+export default async function MyPage() {
+  const data = await getData();
+  
+  return (
+    <div>
+      <h1>Title</h1>
+      {data.map(item => <Item key={item.id} {...item} />)}
+    </div>
+  );
+}
+```
+
+### Client Components (quand nécessaire)
+
+Ajouter `"use client"` uniquement si:
+- État React (`useState`, `useReducer`)
+- Effets (`useEffect`, `useLayoutEffect`)
+- Event handlers (`onClick`, `onChange`, etc.)
+- Hooks de navigation (`useRouter`, `usePathname`)
+- Hooks externes nécessitant le client
+
+```tsx
+"use client";
+
+import { useState } from "react";
+
+export function Counter() {
+  const [count, setCount] = useState(0);
+  
+  return (
+    <button onClick={() => setCount(c => c + 1)}>
+      Count: {count}
+    </button>
+  );
+}
+```
+
+### Composition
+
+Préférer la composition Server + Client:
+
+```tsx
+// page.tsx (Server Component)
+export default async function Page() {
+  const data = await getData();
+  
+  return (
+    <div>
+      <h1>Page Title</h1>
+      <InteractiveWidget data={data} /> {/* Client Component */}
+    </div>
+  );
+}
+```
+
+## Gestion des états
+
+### État serveur: TanStack Query
+
+```tsx
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+
+export function DataComponent() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["fraud-analyses"],
+    queryFn: async () => {
+      const res = await fetch("/api/fraud-analyses");
+      return res.json();
+    },
+  });
+
+  if (isLoading) return <Spinner />;
+  if (error) return <Error error={error} />;
+
+  return <div>{/* Render data */}</div>;
+}
+```
+
+### État global: Zustand
+
+```tsx
+import { create } from "zustand";
+
+interface StoreState {
+  count: number;
+  increment: () => void;
+}
+
+export const useStore = create<StoreState>((set) => ({
+  count: 0,
+  increment: () => set((state) => ({ count: state.count + 1 })),
+}));
+
+// Usage
+const count = useStore((state) => state.count);
+const increment = useStore((state) => state.increment);
+```
+
+### URL State: nuqs
+
+Pour synchroniser state avec l'URL:
+
+```tsx
+"use client";
+
+import { useQueryState } from "nuqs";
+
+export function FilteredList() {
+  const [search, setSearch] = useQueryState("search");
+  
+  return (
+    <input
+      value={search || ""}
+      onChange={(e) => setSearch(e.target.value)}
+    />
+  );
+}
+```
+
+## Server Actions
+
+### Définition
+
+```typescript
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+
+const schema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+export async function createUser(formData: FormData) {
+  // 1. Validation
+  const data = schema.parse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+  });
+
+  // 2. Authorization
+  const session = await requireAuth();
+
+  // 3. Business logic
+  const user = await db.insert(users).values({
+    ...data,
+    organizationId: session.user.organization.id,
+  });
+
+  // 4. Revalidation
+  revalidatePath("/users");
+
+  return { success: true, user };
+}
+```
+
+### Utilisation
+
+```tsx
+"use client";
+
+import { createUser } from "./actions";
+import { useRouter } from "next/navigation";
+
+export function UserForm() {
+  const router = useRouter();
+
+  async function handleSubmit(formData: FormData) {
+    const result = await createUser(formData);
+    if (result.success) {
+      router.push("/users");
+    }
+  }
+
+  return (
+    <form action={handleSubmit}>
+      <input name="name" />
+      <input name="email" type="email" />
+      <button type="submit">Create</button>
+    </form>
+  );
+}
+```
+
+## Composants UI (shadcn/ui)
+
+### Utilisation
+
+Tous les composants shadcn sont dans `/components/ui`.
+
+```tsx
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+export function MyForm() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Form Title</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Input placeholder="Enter value" />
+        <Button>Submit</Button>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### Styling des composants
+
+Suivre les règles du design system (voir `.cursor/rules/design-system.mdc`):
+
+```tsx
+<Card className="border-white/10 bg-zinc-900/50 backdrop-blur-xl">
+  <Input className="bg-zinc-900/50 border-white/10 text-white" />
+  <Button className="bg-white text-black hover:bg-zinc-200">
+    Primary Action
+  </Button>
+</Card>
+```
+
+## Préférences utilisateur (Mémoires)
+
+### productIds vs productId + options
+
+**Préférer** un tableau `productIds` plutôt que `productId` + `options`:
+
+```typescript
+// ✅ Préféré
+interface CartItem {
+  productIds: string[];
+  quantity: number;
+}
+
+// ❌ Éviter (sauf si vraiment nécessaire)
+interface CartItem {
+  productId: string;
+  options: string[];
+  quantity: number;
+}
+```
+
+### Réutilisation des types
+
+**TOUJOURS** réutiliser les types existants plutôt que d'en créer de nouveaux:
+
+```typescript
+// ✅ Correct - Import du type existant
+import type { FraudAnalysis } from "@/lib/db/schemas";
+
+export function AnalysisCard({ analysis }: { analysis: FraudAnalysis }) {
+  // ...
+}
+
+// ❌ Incorrect - Redéfinition du type
+type FraudAnalysis = {
+  id: string;
+  amount: number;
+  // ... duplication
+};
+```
+
+### Container vs div (Emails)
+
+Pour les emails (react-email), préférer `<Container>` à `<div>`:
+
+```tsx
+import { Container } from "@react-email/components";
+
+// ✅ Préféré
+export function EmailTemplate() {
+  return (
+    <Container>
+      <h1>Email Title</h1>
+    </Container>
+  );
+}
+
+// ❌ Éviter
+export function EmailTemplate() {
+  return (
+    <div>
+      <h1>Email Title</h1>
+    </div>
+  );
+}
+```
+
+### Thème UI
+
+Ne pas être trop audacieux avec les designs - **rester cohérent** avec le thème existant (dark, cyber, fintech).
+
+## Gestion des erreurs
+
+### Try-Catch Pattern
+
+```typescript
+export async function riskyOperation() {
+  try {
+    const result = await externalApi();
+    return { success: true, data: result };
+  } catch (error) {
+    console.error("Operation failed:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
+  }
+}
+```
+
+### Error Boundaries (Client)
+
+```tsx
+"use client";
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h2>Something went wrong!</h2>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+```
+
+## Animations (Framer Motion)
+
+### Pattern standard
+
+```tsx
+import { motion } from "framer-motion";
+
+export function AnimatedCard() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      Content
+    </motion.div>
+  );
+}
+```
+
+### Stagger Children
+
+```tsx
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
+<motion.div variants={container} initial="hidden" animate="show">
+  {items.map((item) => (
+    <motion.div key={item.id} variants={item}>
+      {item.content}
+    </motion.div>
+  ))}
+</motion.div>
+```
+
+## Logging
+
+Utiliser `tslog` configuré:
+
+```typescript
+import { logger } from "@/lib/logger";
+
+logger.info("Operation started", { userId: "123" });
+logger.error("Operation failed", { error, context });
+logger.debug("Debug info", { data });
+```
+
+## Utilitaires
+
+### `cn()` pour les classes Tailwind
+
+```typescript
+import { cn } from "@/lib/utils";
+
+<div className={cn(
+  "base-classes",
+  condition && "conditional-classes",
+  className // Props passées
+)} />
+```
+
+### Date Formatting
+
+```typescript
+import { format } from "date-fns";
+
+const formatted = format(new Date(), "dd/MM/yyyy");
+```
+
+## API Routes
+
+### Structure
+
+```typescript
+// app/api/my-endpoint/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth/auth.server";
+
+export async function GET(request: NextRequest) {
+  // 1. Auth
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // 2. Business logic
+  const data = await fetchData(session.user.organization.id);
+
+  // 3. Response
+  return NextResponse.json({ data });
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  // ...
+}
+```
+
+## Types & Validation
+
+### Zod Schemas
+
+```typescript
+import { z } from "zod";
+
+const userSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  age: z.number().int().positive().optional(),
+});
+
+type User = z.infer<typeof userSchema>;
+
+// Validation
+const user = userSchema.parse(data); // Throw si invalide
+const result = userSchema.safeParse(data); // Retourne result object
+```
+
+## Bonnes Pratiques Générales
+
+1. **Typage strict**: Pas de `any`, utiliser `unknown` si nécessaire
+2. **Validation runtime**: Zod pour toutes les entrées utilisateur
+3. **Isolation multi-tenant**: Toujours filtrer par `organizationId`
+4. **Server-first**: Utiliser Server Components par défaut
+5. **Progressive Enhancement**: Fonctionnel sans JS si possible
+6. **Performance**: Lazy load, code splitting, optimistic updates
+7. **Accessibility**: ARIA labels, keyboard navigation, semantic HTML
+8. **SEO**: Metadata, Open Graph, structured data
+9. **Error handling**: Graceful degradation, user-friendly messages
+10. **Security**: Sanitize inputs, validate on server, protect secrets

@@ -1,0 +1,346 @@
+---
+description: Orylo V2 - Fraud Detection Platform
+globs: 
+alwaysApply: true
+---
+
+# Orylo V2 - Project Rules
+
+## 🎯 Project Overview
+
+Orylo is a **SaaS fraud detection platform** for Stripe merchants. It analyzes payment transactions in real-time using a rules-based engine and AI-powered explanations to detect and prevent fraud, with a focus on **card testing attacks**.
+
+## 🛠 Tech Stack
+
+### Core
+- **Framework**: Next.js 16.1.1 (App Router)
+- **Runtime**: React 19.2.3
+- **Language**: TypeScript (strict mode)
+- **Package Manager**: Bun (`bun add`, `bun install`, `bun run`)
+
+### Database & ORM
+- **Database**: PostgreSQL via Neon Serverless (`@neondatabase/serverless`)
+- **ORM**: Drizzle ORM with `drizzle-zod` for validation schemas
+- **Migrations**: `bun run db:generate`, `bun run db:migrate`, `bun run db:push`
+
+### Authentication
+- **Library**: Better Auth (`better-auth`)
+- **Plugins**: Organizations, Two-Factor
+- **Pattern**: Server-side `auth` instance + Client-side `authClient`
+
+### State Management & Data Fetching
+- **Server State**: TanStack React Query
+- **URL State**: nuqs
+- **Client State**: Zustand (when needed)
+- **Forms**: TanStack React Form
+
+### UI & Styling
+- **CSS**: Tailwind CSS v4
+- **Components**: Custom Shadcn-based components with CVA (class-variance-authority)
+- **Icons**: Lucide React, Phosphor Icons
+- **Animations**: Framer Motion
+- **Theme**: Dark mode by default (`next-themes`)
+
+### AI & ML
+- **Framework**: Mastra AI SDK (`@mastra/core`, `@mastra/ai-sdk`)
+- **Provider**: OpenAI (gpt-4o-mini)
+- **Usage**: Fraud explanation generation, customer analysis
+
+### Payments & Billing
+- **Payments**: Stripe (Connect for merchants, webhooks)
+- **Billing**: Autumn.js for usage-based billing
+
+---
+
+## 📁 Project Structure
+
+```
+orylo-v2/
+├── app/                          # Next.js App Router
+│   ├── (auth)/                   # Auth pages group (sign-in, sign-up, etc.)
+│   ├── (main)/                   # Main app group (dashboard, onboarding)
+│   │   ├── dashboard/            # Dashboard pages
+│   │   ├── onboarding/           # User onboarding flow
+│   │   ├── create-organization/  # Org creation
+│   │   └── select-organization/  # Org selection
+│   ├── (marketing)/              # Marketing pages (about, blog, contact)
+│   └── api/                      # API routes
+│       ├── auth/                 # Better Auth handler
+│       ├── stripe/               # Stripe webhooks
+│       └── fraud-analyses/       # Fraud analysis endpoints
+├── components/
+│   ├── ui/                       # Base UI components (Button, Card, Dialog, etc.)
+│   ├── auth/                     # Auth-related components
+│   ├── dashboard/                # Dashboard-specific components
+│   │   ├── dialogs/              # Modal dialogs
+│   │   ├── layout/               # Sidebar, header
+│   │   └── pages/                # Page-specific component folders
+│   ├── landing/                  # Landing page sections
+│   ├── marketing/                # Marketing page components
+│   └── onboarding/               # Onboarding forms
+├── lib/
+│   ├── actions/                  # Server Actions
+│   ├── auth/                     # Better Auth config (server + client)
+│   ├── config/                   # App configuration (menus, breadcrumbs)
+│   ├── context/                  # React Context providers
+│   ├── db/                       # Database config & schemas
+│   │   ├── schemas/              # Drizzle table schemas
+│   │   └── migrations/           # SQL migrations
+│   ├── fraud-detection/          # Fraud detection engine
+│   │   ├── engine.ts             # Main detection logic
+│   │   ├── types.ts              # TypeScript types
+│   │   ├── card-testing.ts       # Card testing detection
+│   │   ├── velocity.ts           # Velocity tracking
+│   │   └── trust-score.ts        # Customer trust scoring
+│   ├── mastra/                   # Mastra AI agents & prompts
+│   └── stripe/                   # Stripe utilities
+├── hooks/                        # Custom React hooks
+└── content/                      # MDX content (blog, docs)
+```
+
+---
+
+## 🔧 Code Conventions
+
+### File Naming
+- **Components**: `kebab-case.tsx` (e.g., `stats-grid.tsx`, `create-rule-dialog.tsx`)
+- **Schemas**: `camelCase.ts` (e.g., `fraudDetections.ts`, `stripeConnections.ts`)
+- **Actions**: `kebab-case.ts` (e.g., `fraud-analyses.ts`, `stripe-connect.ts`)
+
+### Component Patterns
+```tsx
+// Server Component (default)
+const MyComponent = async ({ data }: { data: MyType }) => {
+  const result = await fetchData();
+  return <div>{result}</div>;
+};
+
+// Client Component
+"use client";
+const MyClientComponent = ({ children }: { children: React.ReactNode }) => {
+  const [state, setState] = useState();
+  return <div>{children}</div>;
+};
+```
+
+### Server Actions
+```ts
+"use server";
+
+import { db } from "@/lib/db";
+import { auth } from "@/lib/auth/auth.server";
+import { headers } from "next/headers";
+
+export async function myAction(input: MyInput) {
+  // Always validate session for protected actions
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("Unauthorized");
+  
+  // Use drizzle for DB operations
+  const result = await db.query.myTable.findMany({
+    where: eq(myTable.organizationId, session.session.activeOrganizationId),
+  });
+  
+  return result;
+}
+```
+
+### Database Schema Pattern
+```ts
+// lib/db/schemas/myTable.ts
+import { pgTable, text, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+import { InferSelectModel, InferInsertModel, relations } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+
+export const myTable = pgTable("my_table", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  organizationId: text("organization_id").notNull()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  data: jsonb("data").$type<MyDataType>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("my_table_org_idx").on(table.organizationId),
+]);
+
+export const myTableRelations = relations(myTable, ({ one }) => ({
+  organization: one(organization, {
+    fields: [myTable.organizationId],
+    references: [organization.id],
+  }),
+}));
+
+// Export types
+export type MyRecord = InferSelectModel<typeof myTable>;
+export type NewMyRecord = InferInsertModel<typeof myTable>;
+export const myTableInsertSchema = createInsertSchema(myTable);
+export const myTableSelectSchema = createSelectSchema(myTable);
+```
+
+### UI Component Pattern (CVA)
+```tsx
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const myComponentVariants = cva("base-classes", {
+  variants: {
+    variant: {
+      default: "variant-default-classes",
+      secondary: "variant-secondary-classes",
+    },
+    size: {
+      default: "size-default-classes",
+      sm: "size-sm-classes",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+    size: "default",
+  },
+});
+
+function MyComponent({
+  className,
+  variant,
+  size,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof myComponentVariants>) {
+  return (
+    <div
+      className={cn(myComponentVariants({ variant, size, className }))}
+      {...props}
+    />
+  );
+}
+```
+
+---
+
+## 🔐 Authentication Pattern
+
+### Server-side (Protected Routes/Actions)
+```ts
+import { auth } from "@/lib/auth/auth.server";
+import { headers } from "next/headers";
+
+// In Server Component or Server Action
+const session = await auth.api.getSession({ headers: await headers() });
+if (!session) redirect("/sign-in");
+
+const organizationId = session.session.activeOrganizationId;
+```
+
+### Client-side
+```ts
+import { useSession, useActiveOrganization } from "@/lib/auth/auth.client";
+
+// In Client Component
+const { data: session, isPending } = useSession();
+const { data: organization } = useActiveOrganization();
+```
+
+---
+
+## 🚨 Fraud Detection System
+
+### Core Engine (`lib/fraud-detection/engine.ts`)
+The fraud detection uses a **rules-based scoring system**:
+- Analyzes `TransactionContext` with card, customer, velocity data
+- Applies positive/negative rules that adjust `riskScore` (0-100)
+- Returns `FraudDecision`: `ALLOW`, `REVIEW`, or `BLOCK`
+
+### Key Types (`lib/fraud-detection/types.ts`)
+- `TransactionContext`: Full transaction data for analysis
+- `FraudDetectionResult`: Decision + score + factors
+- `FraudFactor`: Individual risk factor with weight & severity
+- `CustomerTier`: `blocked` | `suspicious` | `new` | `trusted` | `vip`
+
+### Card Testing Detection
+Special focus on detecting **card testing attacks**:
+- Multiple unique cards from same IP/session
+- Rapid succession of small-amount transactions
+- High failure rates with sequential card numbers
+
+---
+
+## 🎨 UI Guidelines
+
+### Theme
+- **Primary palette**: Indigo/Purple gradients on dark zinc background
+- **Accent colors**: Emerald (success), Rose (error), Amber (warning)
+- **Cards**: `bg-zinc-900/50 border border-white/5 backdrop-blur-xl`
+
+### Dashboard Pattern
+```tsx
+<div className="bg-black space-y-4 relative overflow-hidden min-h-screen">
+  {/* Background Effects */}
+  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-indigo-900/20 via-zinc-900/0 to-zinc-900/0 pointer-events-none" />
+  
+  {/* Content */}
+  <div className="relative z-10">
+    {/* ... */}
+  </div>
+</div>
+```
+
+### Imports
+```tsx
+// UI Components from @/components/ui/
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+// Icons from lucide-react
+import { ShieldAlert, Activity, Settings } from "lucide-react";
+```
+
+---
+
+## ⚠️ Important Rules
+
+1. **Always reuse existing types** from `lib/db/schemas` or `lib/fraud-detection/types.ts`
+2. **Use `productIds` array** instead of `productId` with options when possible
+3. **Use `Container` from react-email** for email layouts, not plain `div`
+4. **Stick to existing theme** - don't create overly audacious UI designs
+5. **Use nested routes** - project uses nested React Router routes, not flat routes
+6. **Server-first**: Default to Server Components, use `"use client"` only when needed
+7. **French language**: Application content and AI explanations are in French
+8. **Organization-scoped**: All data queries must filter by `organizationId`
+
+---
+
+## 🚀 Common Commands
+
+```bash
+# Development
+bun run dev
+
+# Database
+bun run db:generate    # Generate migrations
+bun run db:migrate     # Run migrations
+bun run db:push        # Push schema changes
+bun run db:studio      # Open Drizzle Studio
+
+# Build & Deploy
+bun run build
+bun run start
+bun run lint
+```
+
+---
+
+## 📦 Key Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| `better-auth` | Authentication + Organizations |
+| `drizzle-orm` | Database ORM |
+| `@neondatabase/serverless` | PostgreSQL connection |
+| `@tanstack/react-query` | Server state management |
+| `@tanstack/react-form` | Form handling |
+| `@mastra/core` | AI agents framework |
+| `stripe` | Payment processing |
+| `autumn-js` | Usage-based billing |
+| `nuqs` | URL state management |
+| `sonner` | Toast notifications |
+| `framer-motion` | Animations |

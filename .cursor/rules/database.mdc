@@ -1,0 +1,256 @@
+---
+description: Conventions et patterns pour la base de données avec Drizzle ORM
+globs: ["lib/db/**/*.ts"]
+---
+
+# Base de données & Drizzle ORM
+
+## Configuration
+
+### Provider & Connexion
+- **Database**: PostgreSQL (Neon Serverless)
+- **ORM**: Drizzle ORM avec adaptateur Neon
+- **Connexion**: Pool de connexions via `@neondatabase/serverless`
+
+```typescript
+// lib/db/index.ts
+import { drizzle } from "drizzle-orm/neon-serverless";
+import { Pool } from "@neondatabase/serverless";
+import * as schema from "./schemas";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool, schema });
+```
+
+## Structure des Schémas
+
+### Localisation
+- **Tous les schémas** dans `/lib/db/schemas/`
+- **Index central** : `/lib/db/schemas/index.ts` (exporte tous les schémas)
+- **Un fichier par domaine** : `fraudAnalyses.ts`, `organization.ts`, `user.ts`, etc.
+
+### Pattern de Schema Standard
+
+```typescript
+// lib/db/schemas/example.ts
+import { pgTable, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { InferInsertModel, InferSelectModel, relations } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { organization } from "./organization";
+
+// 1. Définir la table
+export const myTable = pgTable("my_table", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  organizationId: text("organizationId")
+    .notNull()
+    .references(() => organization.id),
+  name: text("name").notNull(),
+  isActive: boolean("isActive").notNull().default(true),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// 2. Définir les relations
+export const myTableRelations = relations(myTable, ({ one, many }) => ({
+  organization: one(organization, {
+    fields: [myTable.organizationId],
+    references: [organization.id],
+  }),
+  // many relations si nécessaire
+}));
+
+// 3. Inférer les types TypeScript
+export type MyTable = InferSelectModel<typeof myTable>;
+export type NewMyTable = InferInsertModel<typeof myTable>;
+
+// 4. Créer les schémas Zod pour validation
+export const myTableInsertSchema = createInsertSchema(myTable);
+export const myTableSelectSchema = createSelectSchema(myTable);
+```
+
+## Conventions de Colonnes
+
+### IDs
+- **Type**: `text("id")` (UUID v4)
+- **Génération**: `.$defaultFn(() => crypto.randomUUID())`
+- **Jamais** d'auto-increment ou serial
+
+### Timestamps
+```typescript
+createdAt: timestamp("createdAt").defaultNow().notNull(),
+updatedAt: timestamp("updatedAt").defaultNow().notNull()
+  .$onUpdate(() => new Date()),
+```
+
+### Relations avec Organization (Multi-tenancy)
+**TOUJOURS** inclure une foreign key vers `organization` pour les données métier:
+```typescript
+organizationId: text("organizationId")
+  .notNull()
+  .references(() => organization.id)
+```
+
+### Enums PostgreSQL
+Utiliser `pgEnum` pour les valeurs fixes:
+```typescript
+export const actionEnum = pgEnum("action", [
+  "canceled",
+  "refunded",
+  "3ds_required",
+  "accepted",
+]);
+
+// Dans la table
+action: actionEnum("action").notNull().default("accepted"),
+```
+
+### JSON/JSONB
+Pour les données structurées flexibles:
+```typescript
+signals: jsonb("signals").notNull().default({}),
+```
+
+### Arrays
+```typescript
+agentsUsed: text("agentsUsed").array().notNull().default([]),
+```
+
+## Querying Patterns
+
+### Select Simple
+```typescript
+const results = await db.select().from(fraudAnalyses);
+```
+
+### Select avec WHERE
+```typescript
+const analysis = await db
+  .select()
+  .from(fraudAnalyses)
+  .where(eq(fraudAnalyses.id, id));
+```
+
+### Select avec Relations
+```typescript
+const analysisWithOrg = await db.query.fraudAnalyses.findFirst({
+  where: eq(fraudAnalyses.id, id),
+  with: {
+    organization: true,
+  },
+});
+```
+
+### Insert
+```typescript
+const [newAnalysis] = await db
+  .insert(fraudAnalyses)
+  .values({
+    organizationId: "...",
+    amount: 1000,
+    // ...
+  })
+  .returning();
+```
+
+### Update
+```typescript
+await db
+  .update(fraudAnalyses)
+  .set({ action: "refunded" })
+  .where(eq(fraudAnalyses.id, id));
+```
+
+### Delete
+```typescript
+await db
+  .delete(fraudAnalyses)
+  .where(eq(fraudAnalyses.id, id));
+```
+
+## Migrations
+
+### Génération
+```bash
+bun drizzle-kit generate
+```
+
+### Application
+```bash
+bun drizzle-kit migrate
+```
+
+### Configuration
+Voir `drizzle.config.ts`:
+```typescript
+{
+  schema: "./lib/db/schemas/*",
+  out: "./lib/db/migrations",
+  dialect: "postgresql",
+}
+```
+
+## Schémas Better Auth
+
+Better Auth gère automatiquement ses propres tables:
+- `user` - Utilisateurs
+- `session` - Sessions d'authentification
+- `account` - Comptes OAuth
+- `organization` - Organizations (multi-tenancy)
+- `member` - Membres d'organizations
+- `invitation` - Invitations
+- `twoFactor` - 2FA
+- `verification` - Tokens de vérification
+
+**NE PAS** modifier ces schémas manuellement. Utiliser le plugin system de Better Auth pour extensions.
+
+## Relations Organization (Multi-tenancy)
+
+Toutes les tables métier doivent:
+1. Avoir une colonne `organizationId`
+2. Définir une relation avec `organization`
+3. Filtrer par `organizationId` dans toutes les queries
+
+```typescript
+// ✅ Bon - Filtrage par organization
+const analyses = await db
+  .select()
+  .from(fraudAnalyses)
+  .where(eq(fraudAnalyses.organizationId, currentOrgId));
+
+// ❌ Mauvais - Pas de filtrage (fuite de données!)
+const analyses = await db.select().from(fraudAnalyses);
+```
+
+## Types Export
+
+**TOUJOURS** exporter les types depuis le schéma:
+```typescript
+export type FraudAnalysis = InferSelectModel<typeof fraudAnalyses>;
+export type NewFraudAnalysis = InferInsertModel<typeof fraudAnalyses>;
+```
+
+**RÉUTILISER** ces types dans tout le code (ne pas redéfinir).
+
+## Validation avec Zod
+
+Utiliser `drizzle-zod` pour générer les schémas:
+```typescript
+import { createInsertSchema } from "drizzle-zod";
+
+export const fraudAnalysesInsertSchema = createInsertSchema(fraudAnalyses);
+
+// Utilisation
+const validatedData = fraudAnalysesInsertSchema.parse(input);
+```
+
+## Bonnes Pratiques
+
+1. **Un fichier par domaine métier** (pas de mega-fichier)
+2. **Relations explicites** pour faciliter les joins
+3. **Types exportés** et réutilisés partout
+4. **Schémas Zod** pour validation runtime
+5. **Filtrage organization** systématique
+6. **Timestamps** sur toutes les tables
+7. **UUIDs** pour tous les IDs (pas d'auto-increment)
+8. **Enums PostgreSQL** pour les valeurs fixes
