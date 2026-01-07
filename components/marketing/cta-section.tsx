@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Shield, Eye, RefreshCcw } from "lucide-react";
+import { Shield, Eye, RefreshCcw } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 export function CTASection() {
   return (
     <section className="relative py-20 md:py-28">
       {/* Background */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-950/20 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-b from-transparent via-indigo-950/20 to-transparent" />
         <div className="absolute bottom-0 left-1/2 h-[300px] w-[800px] -translate-x-1/2 rounded-full bg-indigo-500/20 blur-[100px]" />
       </div>
 
@@ -28,15 +29,15 @@ export function CTASection() {
         {/* Trust badges */}
         <div className="mb-10 flex flex-wrap items-center justify-center gap-6 text-sm text-zinc-400">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-indigo-400" />
+            <HugeiconsIcon icon={Shield} className="h-4 w-4 text-indigo-400" />
             <span>Card Testing Detection</span>
           </div>
           <div className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-indigo-400" />
+            <HugeiconsIcon icon={Eye} className="h-4 w-4 text-indigo-400" />
             <span>Visual Explanations</span>
           </div>
           <div className="flex items-center gap-2">
-            <RefreshCcw className="h-4 w-4 text-indigo-400" />
+            <HugeiconsIcon icon={RefreshCcw} className="h-4 w-4 text-indigo-400" />
             <span>Auto-Refund & Blacklist</span>
           </div>
         </div>

@@ -11,10 +11,11 @@ import {
   Building2,
   Check,
   CreditCard,
-  Loader2,
+  LoaderCircle,
   Settings,
   Users,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { updateOrganizationOnboarding } from "@/lib/actions/organization";
 import { Button } from "@/components/ui/button";
@@ -303,9 +304,9 @@ export function OrganizationOnboardingForm({
                   }`}
               >
                 {isCompleted ? (
-                  <Check className="h-4 w-4" />
+                  <HugeiconsIcon icon={Check} className="h-4 w-4" />
                 ) : (
-                  <Icon className="h-4 w-4" />
+                  <HugeiconsIcon icon={Icon} className="h-4 w-4" />
                 )}
               </div>
               <span
@@ -570,7 +571,7 @@ export function OrganizationOnboardingForm({
                 <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-6">
                   <div className="flex gap-4">
                     <div className="rounded-full bg-indigo-500/20 p-3 text-indigo-300 h-fit">
-                      <CreditCard className="h-6 w-6" />
+                      <HugeiconsIcon icon={CreditCard} className="h-6 w-6" />
                     </div>
                     <div className="flex-1 space-y-2">
                       <h3 className="text-lg font-semibold text-white">
@@ -584,17 +585,17 @@ export function OrganizationOnboardingForm({
                       </p>
                       <ul className="space-y-2 text-sm text-zinc-300 mt-4">
                         <li className="flex gap-2">
-                          <Check className="h-5 w-5 text-green-400" />
+                          <HugeiconsIcon icon={Check} className="h-5 w-5 text-green-400" />
                           <span>Analyse en temps réel des transactions</span>
                         </li>
                         <li className="flex gap-2">
-                          <Check className="h-5 w-5 text-green-400" />
+                          <HugeiconsIcon icon={Check} className="h-5 w-5 text-green-400" />
                           <span>
                             Détection automatique des comportements suspects
                           </span>
                         </li>
                         <li className="flex gap-2">
-                          <Check className="h-5 w-5 text-green-400" />
+                          <HugeiconsIcon icon={Check} className="h-5 w-5 text-green-400" />
                           <span>Alertes personnalisées sur la fraude</span>
                         </li>
                       </ul>
@@ -610,7 +611,7 @@ export function OrganizationOnboardingForm({
                     disabled={isConnectingStripe || isPending}
                   >
                     {isConnectingStripe && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     Connecter Stripe
                   </Button>
@@ -622,7 +623,7 @@ export function OrganizationOnboardingForm({
                     disabled={isConnectingStripe || isPending}
                   >
                     {isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     Passer cette étape
                   </Button>
@@ -640,7 +641,7 @@ export function OrganizationOnboardingForm({
                   onClick={handlePrevious}
                   disabled={currentStep === 1 || isPending}
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  <HugeiconsIcon icon={ArrowLeft} className="mr-2 h-4 w-4" />
                   Précédent
                 </Button>
                 <Button
@@ -649,10 +650,10 @@ export function OrganizationOnboardingForm({
                   disabled={isPending}
                 >
                   {isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   {currentStep === 3 ? "Continuer" : "Suivant"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <HugeiconsIcon icon={ArrowRight} className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             )}

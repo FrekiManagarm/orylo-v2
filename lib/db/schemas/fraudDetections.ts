@@ -110,6 +110,11 @@ export const fraudDetections = pgTable(
     decision: text("decision").notNull(), // ALLOW, BLOCK, REVIEW
     confidence: text("confidence").notNull(), // low, medium, high
 
+    // Composite Risk Score (combines riskScore + cardTestingSuspicionScore)
+    compositeScore: integer("composite_score"), // 0-100, calculated from riskScore + cardTesting
+    compositeRiskLevel: text("composite_risk_level"), // minimal, low, moderate, elevated, high, critical
+    cardTestingSuspicionScore: integer("card_testing_suspicion_score").default(0), // Cached score from tracker
+
     // Factors that influenced the decision
     factors: jsonb("factors").$type<FraudFactor[]>().notNull().default([]),
 
@@ -168,6 +173,8 @@ export const fraudDetections = pgTable(
     index("fraud_detections_card_testing_tracker_idx").on(
       table.cardTestingTrackerId
     ),
+    index("fraud_detections_composite_score_idx").on(table.compositeScore),
+    index("fraud_detections_composite_risk_level_idx").on(table.compositeRiskLevel),
     // Composite indexes for common queries
     index("fraud_detections_org_decision_idx").on(
       table.organizationId,
@@ -176,6 +183,10 @@ export const fraudDetections = pgTable(
     index("fraud_detections_org_date_idx").on(
       table.organizationId,
       table.detectedAt
+    ),
+    index("fraud_detections_org_composite_score_idx").on(
+      table.organizationId,
+      table.compositeScore
     ),
   ]
 );

@@ -6,10 +6,11 @@ import { toast } from "sonner";
 import {
   Check,
   Building2,
-  Loader2,
+  LoaderCircle,
   LogOut,
   ChevronRight,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Organization } from "@/lib/db/schemas";
 import {
@@ -86,7 +87,7 @@ export function SelectOrganizationCard({
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-indigo-500/10 p-2 border border-indigo-500/30 text-indigo-300">
-              <Building2 className="h-5 w-5" />
+              <HugeiconsIcon icon={Building2} className="h-5 w-5" />
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-white">
@@ -106,12 +107,12 @@ export function SelectOrganizationCard({
           >
             {isSigningOut ? (
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={LoaderCircle} className="h-4 w-4 animate-spin" />
                 <span>Signing out…</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
+                <HugeiconsIcon icon={LogOut} className="h-4 w-4" />
                 <span>Sign out</span>
               </div>
             )}
@@ -147,7 +148,7 @@ export function SelectOrganizationCard({
                     </div>
                   ) : (
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/10 bg-zinc-800/50">
-                      <Building2 className="h-6 w-6 text-zinc-400" />
+                      <HugeiconsIcon icon={Building2} className="h-6 w-6 text-zinc-400" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
@@ -157,7 +158,7 @@ export function SelectOrganizationCard({
                       </h3>
                       {isActive && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/20 px-2 py-0.5 text-xs font-medium text-indigo-300 border border-indigo-500/30">
-                          <Check className="h-3 w-3" />
+                          <HugeiconsIcon icon={Check} className="h-3 w-3" />
                           Active
                         </span>
                       )}
@@ -168,9 +169,9 @@ export function SelectOrganizationCard({
                   </div>
                   <div className="flex items-center gap-2">
                     {isSelecting ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+                      <HugeiconsIcon icon={LoaderCircle} className="h-5 w-5 animate-spin text-indigo-400" />
                     ) : (
-                      <ChevronRight className="h-5 w-5 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+                      <HugeiconsIcon icon={ChevronRight} className="h-5 w-5 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
                     )}
                   </div>
                 </div>
@@ -186,7 +187,7 @@ export function SelectOrganizationCard({
             onClick={() => router.push("/create-organization")}
             disabled={isPending}
           >
-            <Building2 className="mr-2 h-4 w-4" />
+            <HugeiconsIcon icon={Building2} className="mr-2 h-4 w-4" />
             Create a new organization
           </Button>
         </div>

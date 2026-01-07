@@ -14,12 +14,8 @@ import {
   Monitor,
   Bot,
   Zap,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
-  Clock,
   Fingerprint,
-  MapPin,
   Star,
   XCircle,
   CheckCircle,
@@ -29,7 +25,8 @@ import {
   Target,
   ChevronDown,
   ChevronUp,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, HugeiconsIconProps } from "@hugeicons/react";
 import {
   Drawer,
   DrawerClose,
@@ -42,6 +39,7 @@ import {
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import type { CardTestingTracker, CardTestingAttempt } from "@/lib/db/schemas/cardTestingTrackers";
 
 interface DetectionContext {
   // Location data
@@ -91,12 +89,16 @@ interface DetectionContext {
 
 interface TransactionDetailsDrawerProps {
   analysis: {
-    id: number;
+    id: number | string;
     paymentIntentId: string;
     customerEmail: string | null;
     amount: number;
     currency: string;
     riskScore: number;
+    // Composite score fields
+    compositeScore?: number | null;
+    compositeRiskLevel?: string | null;
+    cardTestingSuspicionScore?: number | null;
     decision: string;
     confidence: string;
     aiExplanation: string | null;
@@ -113,6 +115,7 @@ interface TransactionDetailsDrawerProps {
       severity: "low" | "medium" | "high";
     }>;
   };
+  cardTestingTracker?: CardTestingTracker | null;
 }
 
 const getActionBadge = (action: string) => {
@@ -123,7 +126,7 @@ const getActionBadge = (action: string) => {
           variant="secondary"
           className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
         >
-          <ShieldCheck className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={ShieldCheck} className="mr-1 h-3 w-3" />
           Accepted
         </Badge>
       );
@@ -133,7 +136,7 @@ const getActionBadge = (action: string) => {
           variant="destructive"
           className="bg-rose-500/10 text-rose-400 border-rose-500/20"
         >
-          <ShieldAlert className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={ShieldAlert} className="mr-1 h-3 w-3" />
           Blocked
         </Badge>
       );
@@ -143,7 +146,7 @@ const getActionBadge = (action: string) => {
           variant="outline"
           className="bg-orange-500/10 text-orange-400 border-orange-500/20"
         >
-          <Shield className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={Shield} className="mr-1 h-3 w-3" />
           Review
         </Badge>
       );
@@ -168,35 +171,35 @@ const getTierBadge = (tier?: string) => {
     case "vip":
       return (
         <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20">
-          <Star className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={Star} className="mr-1 h-3 w-3" />
           VIP
         </Badge>
       );
     case "trusted":
       return (
         <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-          <CheckCircle className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={CheckCircle} className="mr-1 h-3 w-3" />
           Trusted
         </Badge>
       );
     case "new":
       return (
         <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">
-          <User className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={User} className="mr-1 h-3 w-3" />
           New
         </Badge>
       );
     case "suspicious":
       return (
         <Badge className="bg-orange-500/10 text-orange-400 border-orange-500/20">
-          <AlertCircle className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={AlertCircle} className="mr-1 h-3 w-3" />
           Suspicious
         </Badge>
       );
     case "blocked":
       return (
         <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20">
-          <XCircle className="mr-1 h-3 w-3" />
+          <HugeiconsIcon icon={XCircle} className="mr-1 h-3 w-3" />
           Blocked
         </Badge>
       );
@@ -237,12 +240,12 @@ const getConfidenceBadge = (confidence: string) => {
 const MetricCard = ({
   label,
   value,
-  icon: Icon,
+  icon,
   variant = "default"
 }: {
   label: string;
   value: string | number;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: HugeiconsIconProps['icon'];
   variant?: "default" | "success" | "warning" | "danger";
 }) => {
   const variantClasses = {
@@ -255,7 +258,7 @@ const MetricCard = ({
   return (
     <div className="bg-zinc-950/50 p-2.5 rounded border border-white/5 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
-        {Icon && <Icon className="h-3 w-3 text-zinc-500" />}
+        {icon && <HugeiconsIcon icon={icon} className="h-3 w-3 text-zinc-500" />}
         <span className="text-[10px] uppercase tracking-wider text-zinc-500 truncate">
           {label}
         </span>
@@ -284,9 +287,9 @@ const PatternFlag = ({
   )}>
     <div className="flex items-center gap-2">
       {active ? (
-        <AlertTriangle className="h-3 w-3 text-orange-400" />
+        <HugeiconsIcon icon={AlertTriangle} className="h-3 w-3 text-orange-400" />
       ) : (
-        <CheckCircle className="h-3 w-3 text-emerald-400" />
+        <HugeiconsIcon icon={CheckCircle} className="h-3 w-3 text-emerald-400" />
       )}
       <span className={cn("text-xs", active ? "text-orange-300" : "text-zinc-400")}>
         {label}
@@ -384,11 +387,30 @@ const parseBoldText = (text: string, lineIndex: number) => {
 
 export function TransactionDetailsDrawer({
   analysis,
+  cardTestingTracker,
 }: TransactionDetailsDrawerProps) {
   const [showFullExplanation, setShowFullExplanation] = useState(false);
+  const [showCardTestingDetails, setShowCardTestingDetails] = useState(false);
 
   const ctx = analysis.detectionContext;
   const signals = analysis.signals || {};
+
+  // Card Testing Correlation
+  const hasCardTesting = !!cardTestingTracker;
+  const cardTestingSuspicionScore = cardTestingTracker?.suspicionScore || 0;
+
+  // Calculate correlation percentage between risk score and card testing score
+  const calculateCorrelation = () => {
+    if (!hasCardTesting) return null;
+    const riskScore = analysis.riskScore;
+    const suspicionScore = cardTestingSuspicionScore;
+
+    // Calculate how much card testing contributes to the risk score
+    const contributionPercentage = Math.min(100, Math.round((suspicionScore / Math.max(riskScore, 1)) * 100));
+    return contributionPercentage;
+  };
+
+  const correlationPercentage = calculateCorrelation();
 
   // Extract all relevant data
   const cardInfo = {
@@ -420,7 +442,7 @@ export function TransactionDetailsDrawer({
           size="icon"
           className="text-zinc-500 hover:text-white hover:bg-white/5 h-8 w-8"
         >
-          <Eye className="h-4 w-4" />
+          <HugeiconsIcon icon={Eye} className="h-4 w-4" />
         </Button>
       </DrawerTrigger>
       <DrawerContent className="h-full w-[400px] border-l border-white/10 bg-zinc-950 text-white">
@@ -434,38 +456,81 @@ export function TransactionDetailsDrawer({
         </DrawerHeader>
 
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-          {/* 1. Hero Section: Score & Status */}
+          {/* 1. Hero Section: Composite Score & Status */}
           <div className="flex flex-col items-center justify-center p-6 rounded-lg bg-zinc-900/50 border border-white/5 space-y-4">
+            {/* Main Composite Score Circle */}
             <div className="relative">
               {/* Animated Pulse for High Risk */}
-              {analysis.riskScore >= 70 && (
+              {(analysis.compositeScore ?? analysis.riskScore) >= 65 && (
                 <div className="absolute inset-0 bg-rose-500/20 blur-xl rounded-full animate-pulse" />
               )}
               <div className={cn(
                 "relative flex items-center justify-center w-24 h-24 rounded-full border-4",
-                analysis.riskScore >= 70 ? "border-rose-500/50 bg-rose-500/10" :
-                  analysis.riskScore >= 30 ? "border-orange-500/50 bg-orange-500/10" :
-                    "border-emerald-500/50 bg-emerald-500/10"
+                (analysis.compositeScore ?? analysis.riskScore) >= 65 ? "border-rose-500/50 bg-rose-500/10" :
+                  (analysis.compositeScore ?? analysis.riskScore) >= 50 ? "border-orange-500/50 bg-orange-500/10" :
+                    (analysis.compositeScore ?? analysis.riskScore) >= 35 ? "border-yellow-500/50 bg-yellow-500/10" :
+                      "border-emerald-500/50 bg-emerald-500/10"
               )}>
                 <div className="flex flex-col items-center">
                   <span className={cn(
                     "text-3xl font-bold",
-                    analysis.riskScore >= 70 ? "text-rose-500" :
-                      analysis.riskScore >= 30 ? "text-orange-500" :
-                        "text-emerald-500"
+                    (analysis.compositeScore ?? analysis.riskScore) >= 65 ? "text-rose-500" :
+                      (analysis.compositeScore ?? analysis.riskScore) >= 50 ? "text-orange-500" :
+                        (analysis.compositeScore ?? analysis.riskScore) >= 35 ? "text-yellow-500" :
+                          "text-emerald-500"
                   )}>
-                    {analysis.riskScore}
+                    {analysis.compositeScore ?? analysis.riskScore}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Risk Score</span>
+                  <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-medium">Score Total</span>
                 </div>
               </div>
             </div>
+
+            {/* Score Breakdown */}
+            <div className="flex items-center gap-4 text-xs">
+              <div className="flex flex-col items-center px-3 py-1.5 rounded bg-zinc-950/50 border border-white/5">
+                <span className="text-zinc-500 text-[10px] uppercase">Risque</span>
+                <span className="font-bold text-zinc-300">{analysis.riskScore}</span>
+              </div>
+              <div className="text-zinc-600">+</div>
+              <div className="flex flex-col items-center px-3 py-1.5 rounded bg-zinc-950/50 border border-white/5">
+                <span className="text-zinc-500 text-[10px] uppercase">Card Test</span>
+                <span className={cn(
+                  "font-bold",
+                  (analysis.cardTestingSuspicionScore ?? 0) >= 50 ? "text-rose-400" :
+                    (analysis.cardTestingSuspicionScore ?? 0) >= 20 ? "text-orange-400" :
+                      "text-zinc-300"
+                )}>
+                  {analysis.cardTestingSuspicionScore ?? 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Risk Level Badge */}
+            {analysis.compositeRiskLevel && (
+              <div className={cn(
+                "px-3 py-1 rounded-full text-xs font-medium border",
+                analysis.compositeRiskLevel === "critical" ? "bg-rose-500/10 text-rose-400 border-rose-500/30" :
+                  analysis.compositeRiskLevel === "high" ? "bg-red-500/10 text-red-400 border-red-500/30" :
+                    analysis.compositeRiskLevel === "elevated" ? "bg-orange-500/10 text-orange-400 border-orange-500/30" :
+                      analysis.compositeRiskLevel === "moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/30" :
+                        analysis.compositeRiskLevel === "low" ? "bg-green-500/10 text-green-400 border-green-500/30" :
+                          "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+              )}>
+                {analysis.compositeRiskLevel === "minimal" && "Risque Minimal"}
+                {analysis.compositeRiskLevel === "low" && "Risque Faible"}
+                {analysis.compositeRiskLevel === "moderate" && "Risque Modéré"}
+                {analysis.compositeRiskLevel === "elevated" && "Risque Élevé"}
+                {analysis.compositeRiskLevel === "high" && "Risque Très Élevé"}
+                {analysis.compositeRiskLevel === "critical" && "Risque Critique"}
+              </div>
+            )}
 
             <div className="flex flex-col items-center gap-2">
               {getActionBadge(analysis.decision)}
               {analysis.confidence !== "high" && (
                 <span className="text-xs text-zinc-500 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
+                  <HugeiconsIcon icon={AlertCircle} className="h-3 w-3" />
                   {analysis.confidence.charAt(0).toUpperCase() + analysis.confidence.slice(1)} Confidence
                 </span>
               )}
@@ -477,7 +542,7 @@ export function TransactionDetailsDrawer({
             <div className="p-3 bg-zinc-950/50 rounded border border-white/5 flex flex-col gap-1">
               <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Amount</span>
               <div className="flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-zinc-400" />
+                <HugeiconsIcon icon={Wallet} className="h-4 w-4 text-zinc-400" />
                 <span className="text-sm font-medium text-white">
                   {formatCurrency(analysis.amount, analysis.currency)}
                 </span>
@@ -486,7 +551,7 @@ export function TransactionDetailsDrawer({
             <div className="p-3 bg-zinc-950/50 rounded border border-white/5 flex flex-col gap-1">
               <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Customer</span>
               <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-zinc-400" />
+                <HugeiconsIcon icon={User} className="h-4 w-4 text-zinc-400" />
                 <span className="text-sm font-medium text-white truncate" title={analysis.customerEmail || ""}>
                   {analysis.customerEmail?.split('@')[0] || "Unknown"}
                 </span>
@@ -495,7 +560,7 @@ export function TransactionDetailsDrawer({
             <div className="p-3 bg-zinc-950/50 rounded border border-white/5 flex flex-col gap-1">
               <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Payment Method</span>
               <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-zinc-400" />
+                <HugeiconsIcon icon={CreditCard} className="h-4 w-4 text-zinc-400" />
                 <span className="text-sm font-medium text-white capitalize">
                   {cardInfo.brand} •• {cardInfo.last4}
                 </span>
@@ -504,7 +569,7 @@ export function TransactionDetailsDrawer({
             <div className="p-3 bg-zinc-950/50 rounded border border-white/5 flex flex-col gap-1">
               <span className="text-[10px] text-zinc-500 uppercase tracking-wider">Location</span>
               <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-zinc-400" />
+                <HugeiconsIcon icon={Globe} className="h-4 w-4 text-zinc-400" />
                 <span className="text-sm font-medium text-white">
                   {ctx?.ipCountry || "Unknown"}
                 </span>
@@ -516,7 +581,7 @@ export function TransactionDetailsDrawer({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                <Bot className="h-4 w-4 text-purple-400" />
+                <HugeiconsIcon icon={Bot} className="h-4 w-4 text-purple-400" />
                 AI Analysis
               </h3>
               {analysis.aiExplanation && analysis.aiExplanation.length > 150 && (
@@ -528,12 +593,12 @@ export function TransactionDetailsDrawer({
                 >
                   {showFullExplanation ? (
                     <>
-                      <ChevronUp className="h-3 w-3 mr-1" />
+                      <HugeiconsIcon icon={ChevronUp} className="h-3 w-3 mr-1" />
                       Réduire
                     </>
                   ) : (
                     <>
-                      <ChevronDown className="h-3 w-3 mr-1" />
+                      <HugeiconsIcon icon={ChevronDown} className="h-3 w-3 mr-1" />
                       Voir tout
                     </>
                   )}
@@ -553,7 +618,7 @@ export function TransactionDetailsDrawer({
 
                   {analysis.aiExplanation && analysis.aiExplanation.length > 150 && (
                     <div className="mt-2 pt-2 border-t border-white/5 text-xs text-zinc-500 italic flex items-center gap-1">
-                      <ChevronDown className="h-3 w-3" />
+                      <HugeiconsIcon icon={ChevronDown} className="h-3 w-3" />
                       {analysis.aiExplanation.split('\n').filter(line => line.trim()).length - 1} lignes supplémentaires
                     </div>
                   )}
@@ -564,18 +629,39 @@ export function TransactionDetailsDrawer({
 
           {/* 4. Critical Alerts (Conditional) */}
           {(hasVelocityData && (velocityData.suspicionScore || 0) > 50) ||
-            (hasPatterns && Object.values(patterns || {}).some(Boolean)) ? (
+            (hasPatterns && Object.values(patterns || {}).some(Boolean)) ||
+            (hasCardTesting && cardTestingSuspicionScore > 0) ? (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 text-rose-400" />
+                <HugeiconsIcon icon={ShieldAlert} className="h-4 w-4 text-rose-400" />
                 Critical Alerts
               </h3>
               <div className="space-y-2">
+                {/* Card Testing Alert */}
+                {hasCardTesting && cardTestingSuspicionScore > 0 && (
+                  <div className="flex items-center justify-between p-3 rounded bg-purple-500/10 border border-purple-500/20">
+                    <div className="flex items-center gap-2">
+                      <HugeiconsIcon icon={Fingerprint} className="h-4 w-4 text-purple-400" />
+                      <div className="flex flex-col">
+                        <span className="text-sm text-purple-200">Card Testing Activity</span>
+                        {correlationPercentage !== null && correlationPercentage > 0 && (
+                          <span className="text-[10px] text-purple-300/70">
+                            Impacte le score de risque à ~{correlationPercentage}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 text-[10px]">
+                      SCORE: {cardTestingSuspicionScore}
+                    </Badge>
+                  </div>
+                )}
+
                 {/* Velocity Alert */}
                 {(velocityData.suspicionScore || 0) > 50 && (
                   <div className="flex items-center justify-between p-3 rounded bg-rose-500/10 border border-rose-500/20">
                     <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-rose-400" />
+                      <HugeiconsIcon icon={Zap} className="h-4 w-4 text-rose-400" />
                       <span className="text-sm text-rose-200">High Velocity Activity</span>
                     </div>
                     <Badge variant="destructive" className="text-[10px]">DETECTED</Badge>
@@ -586,7 +672,7 @@ export function TransactionDetailsDrawer({
                   active && (
                     <div key={key} className="flex items-center justify-between p-3 rounded bg-orange-500/10 border border-orange-500/20">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-orange-400" />
+                        <HugeiconsIcon icon={AlertTriangle} className="h-4 w-4 text-orange-400" />
                         <span className="text-sm text-orange-200">
                           {key.replace(/([A-Z])/g, ' $1').trim()}
                         </span>
@@ -599,11 +685,111 @@ export function TransactionDetailsDrawer({
             </div>
           ) : null}
 
-          {/* 5. Key Risk Factors (Simplified List) */}
+          {/* 5. Card Testing Context (Simplified) */}
+          {hasCardTesting && cardTestingTracker && (() => {
+            // Calculate metrics from attempts array as fallback for old data
+            const attempts = cardTestingTracker.attempts as CardTestingAttempt[];
+            const computedTotalAttempts = cardTestingTracker.totalAttempts > 0
+              ? cardTestingTracker.totalAttempts
+              : attempts.length;
+            const computedFailedAttempts = cardTestingTracker.failedAttempts > 0
+              ? cardTestingTracker.failedAttempts
+              : attempts.filter(a => a.status === "failed").length;
+            const computedUniqueCards = cardTestingTracker.uniqueCards > 0
+              ? cardTestingTracker.uniqueCards
+              : new Set(attempts.map(a => a.cardFingerprint)).size;
+            const computedUniqueIPs = cardTestingTracker.uniqueIPs > 0
+              ? cardTestingTracker.uniqueIPs
+              : new Set(attempts.map(a => a.ipAddress).filter(Boolean)).size;
+
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-white flex items-center gap-2">
+                    <HugeiconsIcon icon={Activity} className="h-4 w-4 text-zinc-400" />
+                    Card Testing Context
+                  </h3>
+                </div>
+
+                {/* Card Testing Metrics Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <MetricCard
+                    label="Session ID"
+                    value={cardTestingTracker.sessionId ? "Active" : "None"}
+                    icon={Monitor}
+                  />
+                  <MetricCard
+                    label="IPs uniques"
+                    value={computedUniqueIPs}
+                    icon={Globe}
+                    variant={computedUniqueIPs > 2 ? "warning" : "default"}
+                  />
+                  <MetricCard
+                    label="Cartes uniques"
+                    value={computedUniqueCards}
+                    icon={Fingerprint}
+                    variant={computedUniqueCards > 3 ? "danger" : "default"}
+                  />
+                  <MetricCard
+                    label="Tentatives / Échecs"
+                    value={`${computedTotalAttempts} / ${computedFailedAttempts}`}
+                    icon={History}
+                    variant={computedFailedAttempts > 2 ? "danger" : "default"}
+                  />
+                </div>
+
+                {/* Timeline (if relevant) */}
+                {(cardTestingTracker.attempts as CardTestingAttempt[]).length > 1 && (
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowCardTestingDetails(!showCardTestingDetails)}
+                      className="w-full text-xs text-zinc-500 hover:text-white hover:bg-white/5 h-8 border border-white/5 bg-zinc-900/30"
+                    >
+                      {showCardTestingDetails ? "Masquer l'historique de session" : "Voir l'historique de session"}
+                      {showCardTestingDetails ? (
+                        <HugeiconsIcon icon={ChevronUp} className="h-3 w-3 ml-2" />
+                      ) : (
+                        <HugeiconsIcon icon={ChevronDown} className="h-3 w-3 ml-2" />
+                      )}
+                    </Button>
+
+                    {showCardTestingDetails && (
+                      <div className="mt-2 space-y-1.5 pl-2 border-l border-white/10 ml-2">
+                        {(cardTestingTracker.attempts as CardTestingAttempt[]).slice(0, 5).map((attempt, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-xs py-1"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className={cn(
+                                "w-1.5 h-1.5 rounded-full",
+                                attempt.status === "succeeded" ? "bg-emerald-500" :
+                                  attempt.status === "blocked" ? "bg-yellow-500" : "bg-rose-500"
+                              )} />
+                              <span className="text-zinc-400 font-mono">
+                                •••• {attempt.cardLast4}
+                              </span>
+                            </div>
+                            <span className="text-zinc-600">
+                              {new Date(attempt.timestamp).toLocaleTimeString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* 6. Key Risk Factors (Simplified List) */}
           {hasReasons && (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-white flex items-center gap-2">
-                <Target className="h-4 w-4 text-zinc-400" />
+                <HugeiconsIcon icon={Target} className="h-4 w-4 text-zinc-400" />
                 Key Risk Factors
               </h3>
               <div className="space-y-2">

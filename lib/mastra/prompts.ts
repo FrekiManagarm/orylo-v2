@@ -9,70 +9,86 @@
 // FRAUD EXPLANATION AGENT PROMPT
 // ==========================================
 
-export const FRAUD_EXPLANATION_PROMPT = `Tu es un expert en analyse de fraude qui excelle à expliquer des décisions de détection de fraude complexes dans un langage clair et actionnable.
+export const FRAUD_EXPLANATION_PROMPT = `Tu es un expert en analyse de fraude spécialisé dans la détection de CARD TESTING et l'explication des décisions de fraude.
 
 TON TRAVAIL:
-Tu reçois une décision de détection de fraude (ALLOW, BLOCK, ou REVIEW) et les facteurs qui ont mené à cette décision. Tu dois générer une explication claire et professionnelle.
+Tu reçois une décision de détection de fraude (ALLOW, BLOCK, ou REVIEW) avec les facteurs et données de card testing. Tu dois générer une explication claire, en mettant TOUJOURS en avant l'analyse card testing quand des données sont présentes.
+
+⚠️ RÈGLE ABSOLUE - CARD TESTING:
+Si des données de card testing sont présentes (même avec score = 0), tu DOIS TOUJOURS inclure une section "Analyse Card Testing" dans ta réponse. C'est la fonctionnalité signature d'Orylo.
 
 TON:
 - Professionnel mais accessible
-- Clair et concis (pas de jargon technique)
-- Inspirant confiance
-- Orienté action
+- Clair et concis
+- Orienté action et données
 
 FORMAT DE RÉPONSE (en Markdown):
 
 **Résumé de la Décision:**
-[Une phrase: décision + niveau de risque]
+[Une phrase: décision + niveau de risque + mention card testing si score > 30]
 
-**Facteurs de Risque Clés:**
-- **[Facteur 1]** (+[poids] points)
-  [Pourquoi ce facteur est important pour la détection de fraude]
+**🔍 Analyse Card Testing:**
+[OBLIGATOIRE si données card testing présentes - Détaille le raisonnement:]
+- Évalue le nombre de cartes uniques vs seuil normal (1-2 cartes = normal, 3+ = suspect)
+- Analyse le taux d'échec et ce qu'il révèle
+- Interprète le score de suspicion
+- Conclus si c'est du card testing ou non et pourquoi
 
-- **[Facteur 2]** (+[poids] points)
-  [Pourquoi c'est important]
+**Facteurs de Risque:**
+- **[Facteur]** (+[poids] pts): [Explication courte]
+[Liste les 3-5 facteurs principaux]
 
-[Continuer pour les 3-5 facteurs principaux]
-
-**Facteurs Positifs:** (si applicable)
-- **[Facteur positif]** (-[réduction] points)
-  [Pourquoi c'est rassurant]
+**Facteurs Positifs:** (si présents)
+- **[Facteur]** (-[poids] pts): [Pourquoi c'est rassurant]
 
 **Recommandation:**
-[Conseil actionnable pour le marchand]
+[Action concrète pour le marchand]
 
-DIRECTIVES PAR TYPE DE DÉCISION:
+---
 
-1. **Pour les décisions BLOCK:**
-   - Sois clair et confiant
-   - Explique pourquoi la combinaison de facteurs est préoccupante
-   - Recommande de maintenir le blocage
-   - Suggère les prochaines étapes (ex: contacter le client si légitime)
+RAISONNEMENT CARD TESTING - COMMENT ANALYSER:
 
-2. **Pour les décisions ALLOW:**
-   - Sois rassurant
-   - Mets en avant les signaux de confiance positifs
-   - Mentionne les préoccupations mineures si présentes
-   - Confirme que la transaction est sûre à traiter
+Le card testing (test de cartes volées) est une technique de fraude où des criminels testent en masse des numéros de cartes volées pour identifier ceux qui fonctionnent.
 
-3. **Pour les décisions REVIEW:**
-   - Sois équilibré
-   - Explique à la fois les facteurs de risque et les signaux positifs
-   - Donne des conseils spécifiques sur ce qu'il faut vérifier
-   - Aide le marchand à prendre une décision éclairée
+SEUILS D'ANALYSE:
+| Métrique | Normal | Suspect | Critique |
+|----------|--------|---------|----------|
+| Cartes uniques | 1-2 | 3-4 | 5+ |
+| Taux d'échec | <20% | 20-50% | >50% |
+| Score suspicion | 0-30 | 31-60 | 61-100 |
 
-EXEMPLES:
+PATTERNS À DÉTECTER:
+1. **Pattern classique**: 5+ cartes, taux échec >60%, tentatives rapides → CARD TESTING CONFIRMÉ
+2. **Pattern émergent**: 3-4 cartes, taux échec 30-60% → SUSPICION, surveillance nécessaire
+3. **Faux positif possible**: Client légitime avec carte expirée qui réessaie → 2 cartes max, 1-2 échecs
 
-Pour une décision BLOCK:
-"Cette transaction a été bloquée en raison d'un risque de fraude élevé (Score: 85/100). La combinaison de discordance géographique, d'abus de vélocité et de patterns de test de carte suggère fortement une activité frauduleuse. Nous recommandons de maintenir ce blocage."
+TON RAISONNEMENT DOIT:
+- Citer les chiffres exacts (ex: "3 cartes testées avec 66% d'échec")
+- Comparer aux seuils normaux (ex: "ce qui dépasse le seuil normal de 2 cartes")
+- Expliquer la logique (ex: "ce pattern suggère que quelqu'un teste des numéros volés")
+- Donner une conclusion claire (ex: "Card testing probable" ou "Comportement normal")
 
-Pour une décision ALLOW:
-"Cette transaction a été approuvée (Score: 15/100). Le client a un excellent historique d'achat sans litiges, utilise un appareil connu, et le montant est dans sa plage habituelle. C'est un client de confiance."
+EXEMPLES DE RAISONNEMENT:
 
-Pour une décision REVIEW:
-"Cette transaction nécessite une vérification manuelle (Score: 65/100). Bien que le client soit nouveau, le montant est inhabituellement élevé. Envisagez de vérifier l'identité du client avant de procéder."
+Exemple 1 - Card testing confirmé:
+"**🔍 Analyse Card Testing:**
+Score de suspicion: 85/100 - ⚠️ CARD TESTING DÉTECTÉ
 
-Sois spécifique, factuel et utile. Réponds toujours en français.`;
+5 cartes différentes ont été testées sur cette session, bien au-delà du seuil normal de 1-2 cartes. Avec un taux d'échec de 80% (4 échecs sur 5 tentatives), ce pattern est caractéristique d'un fraudeur qui teste des numéros de cartes volées pour trouver ceux qui fonctionnent. Le nombre élevé de cartes combiné au taux d'échec important indique une attaque automatisée. **Conclusion: Card testing confirmé.**"
+
+Exemple 2 - Suspicion modérée:
+"**🔍 Analyse Card Testing:**
+Score de suspicion: 45/100 - Surveillance recommandée
+
+3 cartes utilisées avec 2 échecs (66% d'échec). Ce nombre de cartes est légèrement au-dessus de la normale (1-2), et le taux d'échec est élevé. Cela pourrait être un client avec des cartes expirées, mais le pattern ressemble aussi aux premiers stades d'un test de cartes. **Conclusion: Suspicion modérée, vérification conseillée.**"
+
+Exemple 3 - Comportement normal:
+"**🔍 Analyse Card Testing:**
+Score de suspicion: 0/100 - Aucune anomalie
+
+Une seule carte utilisée avec succès. C'est un comportement de paiement standard. Aucun indicateur de card testing. **Conclusion: Transaction normale.**"
+
+Réponds toujours en français. Sois précis avec les chiffres.`;
 
 // ==========================================
 // CUSTOMER ANALYSIS AGENT PROMPT
@@ -210,22 +226,109 @@ export function buildFraudExplanationPrompt(input: {
     disputeHistory: number;
     trustScore?: number;
   };
+  cardTesting?: {
+    suspicionScore: number;
+    uniqueCards: number;
+    totalAttempts: number;
+    failedAttempts: number;
+    failureRate: number;
+    isCardTesting: boolean;
+    reasons?: string[];
+  };
 }): string {
+  // Build comprehensive card testing section - ALWAYS include if we have any data
+  let cardTestingSection = "";
+  
+  if (input.cardTesting) {
+    const { 
+      suspicionScore, 
+      uniqueCards, 
+      totalAttempts, 
+      failedAttempts, 
+      failureRate, 
+      isCardTesting, 
+      reasons 
+    } = input.cardTesting;
+    
+    // Calculate failure percentage
+    const failurePercent = Math.round(failureRate * 100);
+    
+    // Determine risk level based on metrics
+    let riskLevel = "NORMAL";
+    let riskEmoji = "✅";
+    
+    if (suspicionScore >= 70 || (uniqueCards >= 5 && failurePercent > 50)) {
+      riskLevel = "CRITIQUE - CARD TESTING CONFIRMÉ";
+      riskEmoji = "🚨";
+    } else if (suspicionScore >= 40 || (uniqueCards >= 3 && failurePercent > 30)) {
+      riskLevel = "ÉLEVÉ - SUSPICION FORTE";
+      riskEmoji = "⚠️";
+    } else if (suspicionScore >= 20 || uniqueCards >= 2) {
+      riskLevel = "MODÉRÉ - À SURVEILLER";
+      riskEmoji = "👀";
+    }
+    
+    cardTestingSection = `
+
+═══════════════════════════════════════════════════════════
+📊 DONNÉES CARD TESTING (ANALYSE OBLIGATOIRE)
+═══════════════════════════════════════════════════════════
+
+${riskEmoji} **Niveau de risque card testing:** ${riskLevel}
+
+**Métriques clés:**
+┌─────────────────────────────────────────────────────────┐
+│ Score de suspicion     : ${suspicionScore}/100 ${isCardTesting ? "(SEUIL DÉPASSÉ)" : ""}
+│ Cartes uniques         : ${uniqueCards} ${uniqueCards >= 3 ? "(⚠️ >2 = anormal)" : "(normal)"}
+│ Tentatives totales     : ${totalAttempts}
+│ Tentatives échouées    : ${failedAttempts} (${failurePercent}%) ${failurePercent > 50 ? "(⚠️ taux élevé)" : ""}
+│ Tentatives réussies    : ${totalAttempts - failedAttempts}
+└─────────────────────────────────────────────────────────┘
+
+**Contexte pour ton analyse:**
+- Seuil normal de cartes: 1-2 (client change de carte ou carte expirée)
+- Ce client a utilisé: ${uniqueCards} carte(s) différente(s)
+- Écart vs normal: ${uniqueCards <= 2 ? "Dans la norme" : `+${uniqueCards - 2} carte(s) au-dessus de la norme`}
+- Taux d'échec: ${failurePercent}% ${failurePercent > 50 ? "(pattern typique de card testing)" : failurePercent > 20 ? "(légèrement élevé)" : "(acceptable)"}
+${reasons && reasons.length > 0 ? `\n**Raisons détectées:** ${reasons.join(", ")}` : ""}
+
+⚡ TU DOIS inclure une section "🔍 Analyse Card Testing" dans ta réponse avec ton raisonnement sur ces données.
+═══════════════════════════════════════════════════════════`;
+  } else {
+    // Even without card testing data, mention it
+    cardTestingSection = `
+
+📊 **Card Testing:** Aucune donnée de session multi-cartes disponible pour cette transaction.`;
+  }
+
   return `
-Génère une explication pour cette détection de fraude:
+Génère une explication COMPLÈTE pour cette détection de fraude.
+${cardTestingSection}
+
+═══════════════════════════════════════════════════════════
+📋 DÉCISION ET FACTEURS
+═══════════════════════════════════════════════════════════
 
 **Décision:** ${input.decision}
-**Score de Risque:** ${input.riskScore}/100
-**Confiance:** ${input.confidence}
+**Score de Risque Global:** ${input.riskScore}/100
+**Niveau de Confiance:** ${input.confidence}
 
-**Facteurs:**
-${input.factors.map((f) => `• ${f.type} (${f.weight > 0 ? "+" : ""}${f.weight} points): ${f.description}`).join("\n")}
+**Facteurs détectés (du plus impactant au moins impactant):**
+${input.factors
+  .sort((a, b) => Math.abs(b.weight) - Math.abs(a.weight))
+  .map((f) => `• [${f.severity.toUpperCase()}] ${f.type} (${f.weight > 0 ? "+" : ""}${f.weight} pts): ${f.description}`)
+  .join("\n")}
 
-**Transaction:**
+═══════════════════════════════════════════════════════════
+💳 DÉTAILS TRANSACTION
+═══════════════════════════════════════════════════════════
+
 - Montant: ${(input.amount / 100).toFixed(2)} ${input.currency.toUpperCase()}
 - Client: ${input.customerEmail || "Inconnu"}
-- Carte: ${input.cardBrand || "N/A"} terminant par ${input.cardLast4 || "****"}
-${input.customerHistory ? `- Historique: ${input.customerHistory.totalPurchases} achats, ${input.customerHistory.disputeHistory} litige(s)` : "- Premier achat"}
+- Carte: ${input.cardBrand || "N/A"} ****${input.cardLast4 || "****"}
+${input.customerHistory 
+  ? `- Historique client: ${input.customerHistory.totalPurchases} achat(s), ${input.customerHistory.disputeHistory} litige(s)${input.customerHistory.trustScore ? `, Trust Score: ${input.customerHistory.trustScore}/100` : ""}` 
+  : "- Nouveau client (premier achat)"}
   `.trim();
 }
 

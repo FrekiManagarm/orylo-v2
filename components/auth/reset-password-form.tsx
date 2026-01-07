@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError, FieldContent } from "../ui/field";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { LoaderCircle, ArrowLeft } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const resetPasswordSchema = z
   .object({
@@ -160,7 +161,7 @@ export function ResetPasswordForm() {
               className="w-full bg-white text-black hover:bg-zinc-200"
               disabled={isLoading}
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />}
               Réinitialiser le mot de passe
             </Button>
             <Button
@@ -169,7 +170,7 @@ export function ResetPasswordForm() {
               className="w-full font-normal text-zinc-400 hover:text-white"
             >
               <Link href="/sign-in">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <HugeiconsIcon icon={ArrowLeft} className="mr-2 h-4 w-4" />
                 Retour à la connexion
               </Link>
             </Button>

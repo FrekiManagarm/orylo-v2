@@ -1,4 +1,5 @@
-import { Activity } from "lucide-react";
+import { Activity } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -34,7 +35,7 @@ export async function UsageCard() {
   return (
     <Card className="border-white/5 backdrop-blur-xl relative overflow-hidden bg-linear-to-br from-indigo-500/10 via-zinc-900/50 to-zinc-900/50">
       <div className="absolute top-0 right-0 p-4 opacity-10">
-        <Activity className="w-24 h-24 text-indigo-500" />
+        <HugeiconsIcon icon={Activity} className="w-24 h-24 text-indigo-500" />
       </div>
 
       <CardHeader>

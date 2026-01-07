@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, CreditCard, Eye, Zap } from "lucide-react";
+import { ArrowRight, CreditCard, Eye, Zap } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -30,23 +31,23 @@ export default function Cta() {
           </h2>
 
           <p className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Protect your Stripe account from card testing fraud. 
-            Visual explanations for every blocked transaction. 
+            Protect your Stripe account from card testing fraud.
+            Visual explanations for every blocked transaction.
             Setup in 5 minutes.
           </p>
 
           {/* Feature highlights */}
           <div className="flex flex-wrap items-center justify-center gap-4 mb-12 max-w-3xl mx-auto">
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-              <CreditCard className="h-4 w-4 text-rose-400" />
+              <HugeiconsIcon icon={CreditCard} className="h-4 w-4 text-rose-400" />
               <span className="text-zinc-300 text-sm">Card Testing Detection</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-              <Eye className="h-4 w-4 text-purple-400" />
+              <HugeiconsIcon icon={Eye} className="h-4 w-4 text-purple-400" />
               <span className="text-zinc-300 text-sm">Visual Explanations</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-              <Zap className="h-4 w-4 text-emerald-400" />
+              <HugeiconsIcon icon={Zap} className="h-4 w-4 text-emerald-400" />
               <span className="text-zinc-300 text-sm">Auto-Refund & Blacklist</span>
             </div>
           </div>
@@ -59,7 +60,7 @@ export default function Cta() {
             >
               <Link href="/sign-up">
                 Get Started Now
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <HugeiconsIcon icon={ArrowRight} className="ml-2 h-5 w-5" />
               </Link>
             </Button>
 

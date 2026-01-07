@@ -74,6 +74,25 @@ export async function calculateVelocityMetrics(
 }
 
 /**
+ * Result of tracking a payment attempt
+ */
+export interface TrackPaymentAttemptResult {
+  trackerId: string;
+  suspicionScore: number;
+  reasons: SuspicionReason[];
+  recommendation: "ALLOW" | "REVIEW" | "BLOCK";
+  blocked: boolean;
+  // Detailed metrics for AI analysis
+  metrics: {
+    uniqueCards: number;
+    totalAttempts: number;
+    failedAttempts: number;
+    successfulAttempts: number;
+    failureRate: number;
+  };
+}
+
+/**
  * Track a payment attempt for card testing detection
  */
 export async function trackPaymentAttempt(
@@ -81,13 +100,7 @@ export async function trackPaymentAttempt(
   invoiceId: string,
   attempt: Omit<CardTestingAttempt, "timestamp">,
   sessionId?: string
-): Promise<{
-  trackerId: string;
-  suspicionScore: number;
-  reasons: SuspicionReason[];
-  recommendation: "ALLOW" | "REVIEW" | "BLOCK";
-  blocked: boolean;
-}> {
+): Promise<TrackPaymentAttemptResult> {
   const [existingTracker] = await db
     .select()
     .from(cardTestingTrackers)
@@ -106,6 +119,10 @@ export async function trackPaymentAttempt(
 
   if (!existingTracker) {
     // First attempt for this invoice
+    const failedCount = attempt.status === "failed" ? 1 : 0;
+    const successfulCount = attempt.status === "succeeded" ? 1 : 0;
+    const blockedCount = attempt.status === "blocked" ? 1 : 0;
+    
     const [newTracker] = await db
       .insert(cardTestingTrackers)
       .values({
@@ -114,9 +131,17 @@ export async function trackPaymentAttempt(
         sessionId: sessionId || null,
         attempts: [attemptWithTimestamp],
         uniqueCards: 1,
+        totalAttempts: 1,
+        failedAttempts: failedCount,
+        successfulAttempts: successfulCount,
+        blockedAttempts: blockedCount,
         suspicionScore: 0,
         suspicionReasons: [],
         recommendation: "ALLOW",
+        firstAttemptAt: new Date(),
+        lastAttemptAt: new Date(),
+        primaryIP: attempt.ipAddress || null,
+        uniqueIPs: attempt.ipAddress ? 1 : 0,
       })
       .returning();
 
@@ -126,6 +151,13 @@ export async function trackPaymentAttempt(
       reasons: [],
       recommendation: "ALLOW",
       blocked: false,
+      metrics: {
+        uniqueCards: 1,
+        totalAttempts: 1,
+        failedAttempts: failedCount,
+        successfulAttempts: successfulCount,
+        failureRate: failedCount,
+      },
     };
   }
 
@@ -136,7 +168,21 @@ export async function trackPaymentAttempt(
   // Calculate metrics
   const uniqueCards = new Set(updatedAttempts.map((a) => a.cardFingerprint)).size;
   const failedCount = updatedAttempts.filter((a) => a.status === "failed").length;
+  const successfulCount = updatedAttempts.filter((a) => a.status === "succeeded").length;
+  const blockedCount = updatedAttempts.filter((a) => a.status === "blocked").length;
   const totalAttempts = updatedAttempts.length;
+  const failureRate = totalAttempts > 0 ? failedCount / totalAttempts : 0;
+
+  // Calculate unique IPs
+  const uniqueIPs = new Set(updatedAttempts.map((a) => a.ipAddress).filter(Boolean)).size;
+
+  // Calculate duration
+  const sortedAttempts = [...updatedAttempts].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+  const firstAttemptAt = existingTracker.firstAttemptAt || new Date(sortedAttempts[0].timestamp);
+  const lastAttemptAt = new Date();
+  const attemptDurationSeconds = Math.floor((lastAttemptAt.getTime() - new Date(firstAttemptAt).getTime()) / 1000);
 
   // Calculate suspicion score and reasons
   const { suspicionScore, reasons } = calculateSuspicionScore(
@@ -157,12 +203,22 @@ export async function trackPaymentAttempt(
     recommendation = "REVIEW";
   }
 
-  // Update database
+  // Update database with all metrics
   await db
     .update(cardTestingTrackers)
     .set({
       attempts: updatedAttempts,
       uniqueCards,
+      totalAttempts,
+      failedAttempts: failedCount,
+      successfulAttempts: successfulCount,
+      blockedAttempts: blockedCount,
+      uniqueIPs,
+      // Update sessionId if we have one now but didn't before
+      ...(sessionId && !existingTracker.sessionId ? { sessionId } : {}),
+      firstAttemptAt,
+      lastAttemptAt,
+      attemptDurationSeconds,
       suspicionScore,
       suspicionReasons: reasons,
       recommendation,
@@ -177,6 +233,13 @@ export async function trackPaymentAttempt(
     reasons,
     recommendation,
     blocked,
+    metrics: {
+      uniqueCards,
+      totalAttempts,
+      failedAttempts: failedCount,
+      successfulAttempts: successfulCount,
+      failureRate,
+    },
   };
 }
 

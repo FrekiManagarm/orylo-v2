@@ -25,14 +25,15 @@ import {
   FieldError,
   FieldContent,
 } from "../ui/field";
-import { Loader2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { LoaderCircle } from "@hugeicons/core-free-icons";
 
 const signInSchema = z.object({
-  email: z.string().email({
-    message: "Veuillez entrer une adresse email valide.",
+  email: z.email({
+    message: "Please enter a valid email address.",
   }),
   password: z.string().min(1, {
-    message: "Le mot de passe est requis.",
+    message: "Password is required.",
   }),
 });
 
@@ -164,7 +165,7 @@ export function SignInForm() {
               className="w-full bg-white text-black hover:bg-zinc-200"
               disabled={isLoading}
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />}
               Se connecter
             </Button>
           </FieldGroup>

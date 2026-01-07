@@ -65,6 +65,7 @@ export async function generateFraudExplanation(
           trustScore: input.customer.trustScore,
         }
         : undefined,
+      cardTesting: input.cardTesting,
     });
 
     const response = await fraudExplanationAgent.generate(prompt);

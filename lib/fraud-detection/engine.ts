@@ -100,7 +100,35 @@ export function detectFraud(context: TransactionContext): FraudDetectionResult {
   }
 
   // RULE 3: Card Testing Pattern (SIGNATURE FEATURE)
-  if (context.velocity?.uniqueCardsUsed !== undefined) {
+  // Cumulate the suspicion score from card testing tracker if available
+  if (context.velocity?.suspicionScore !== undefined && context.velocity.suspicionScore > 0) {
+    // Use the pre-calculated suspicion score from card testing analysis
+    // Scale it to contribute to the overall risk score (max 50 points from card testing)
+    const cardTestingContribution = Math.min(context.velocity.suspicionScore * 0.5, 50);
+    riskScore += cardTestingContribution;
+
+    // Determine severity based on suspicion score
+    const severity: FraudSeverity = context.velocity.suspicionScore >= 80
+      ? "high"
+      : context.velocity.suspicionScore >= 50
+        ? "medium"
+        : "low";
+
+    const factorType = context.velocity.suspicionScore >= 80
+      ? "card_testing_critical"
+      : context.velocity.suspicionScore >= 50
+        ? "card_testing"
+        : "multiple_cards";
+
+    factors.push(createFactor(
+      factorType,
+      cardTestingContribution,
+      `Score de suspicion card testing: ${context.velocity.suspicionScore}/100 (${context.velocity.uniqueCardsUsed || 0} cartes, ${context.velocity.failedAttempts || 0} échecs)`,
+      severity
+    ));
+  }
+  // Fallback to basic unique cards analysis if no suspicion score
+  else if (context.velocity?.uniqueCardsUsed !== undefined) {
     if (context.velocity.uniqueCardsUsed >= VELOCITY_THRESHOLDS.UNIQUE_CARDS_CRITICAL) {
       const weight = 50;
       riskScore += weight;

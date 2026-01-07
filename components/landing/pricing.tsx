@@ -9,7 +9,8 @@ import {
   ArrowRight,
   Lock,
   Flame,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import {
   Card,
@@ -122,7 +123,7 @@ export default function Pricing() {
             viewport={{ once: true }}
             className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full border border-amber-500/20 bg-amber-500/10"
           >
-            <Flame className="w-4 h-4 text-amber-400" />
+            <HugeiconsIcon icon={Flame} className="w-4 h-4 text-amber-400" />
             <span className="text-sm font-medium text-amber-400">
               Limited Time: 50% off for early adopters
             </span>
@@ -213,7 +214,7 @@ export default function Pricing() {
                   {plan.earlyBird && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge className="bg-amber-500 text-black font-bold px-4 py-1 text-xs shadow-lg shadow-amber-500/30">
-                        <Flame className="w-3 h-3 mr-1" />
+                        <HugeiconsIcon icon={Flame} className="w-3 h-3 mr-1" />
                         LIMITED TIME
                       </Badge>
                     </div>
@@ -233,7 +234,7 @@ export default function Pricing() {
                             : "bg-white/5 text-zinc-400",
                         )}
                       >
-                        <plan.icon className="w-5 h-5" />
+                        <HugeiconsIcon icon={plan.icon} className="w-5 h-5" />
                       </div>
                     </div>
 
@@ -323,9 +324,9 @@ export default function Pricing() {
                               )}
                             >
                               {isLocked ? (
-                                <Lock className="h-3 w-3 text-amber-400" />
+                                <HugeiconsIcon icon={Lock} className="h-3 w-3 text-amber-400" />
                               ) : (
-                                <Check
+                                <HugeiconsIcon icon={Check}
                                   className={cn(
                                     "h-3 w-3",
                                     plan.popular ? "text-amber-400" : "text-white",
@@ -361,7 +362,7 @@ export default function Pricing() {
                       )}
                     >
                       {plan.cta}
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      <HugeiconsIcon icon={ArrowRight} className="w-4 h-4 ml-2" />
                     </Button>
                     {plan.note && (
                       <p className="text-xs text-center text-zinc-500">

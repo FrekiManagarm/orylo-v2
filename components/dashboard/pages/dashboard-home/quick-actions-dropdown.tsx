@@ -9,7 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, CreditCard, ShieldAlert, Zap } from "lucide-react";
+import { Plus, CreditCard, ShieldAlert, Zap } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { SimulatePaymentButton } from "./simulate-payment-button";
 
@@ -21,7 +22,7 @@ export function QuickActionsDropdown() {
           variant="outline"
           className="bg-zinc-900/50 border-white/10 hover:bg-white/5 hover:border-indigo-500/30"
         >
-          <Zap className="h-4 w-4 mr-2" />
+          <HugeiconsIcon icon={Zap} className="h-4 w-4 mr-2" />
           Quick Actions
         </Button>
       </DropdownMenuTrigger>
@@ -34,21 +35,21 @@ export function QuickActionsDropdown() {
 
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link href="/dashboard/card-testing" className="flex items-center">
-            <CreditCard className="h-4 w-4 mr-2 text-rose-400" />
+            <HugeiconsIcon icon={CreditCard} className="h-4 w-4 mr-2 text-rose-400" />
             <span>View Card Testing</span>
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link href="/dashboard/alerts" className="flex items-center">
-            <ShieldAlert className="h-4 w-4 mr-2 text-amber-400" />
+            <HugeiconsIcon icon={ShieldAlert} className="h-4 w-4 mr-2 text-amber-400" />
             <span>View Threats</span>
           </Link>
         </DropdownMenuItem>
 
         <DropdownMenuItem asChild className="cursor-pointer">
           <Link href="/dashboard/rules" className="flex items-center">
-            <Plus className="h-4 w-4 mr-2 text-indigo-400" />
+            <HugeiconsIcon icon={Plus} className="h-4 w-4 mr-2 text-indigo-400" />
             <span>Create New Rule</span>
           </Link>
         </DropdownMenuItem>

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const tiers = [
   {
@@ -97,21 +98,19 @@ export function PricingSection() {
           <div className="inline-flex rounded-lg border border-white/10 bg-zinc-900/50 p-1">
             <button
               onClick={() => setIsAnnual(false)}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                !isAnnual
-                  ? "bg-white text-black"
-                  : "text-zinc-400 hover:text-white"
-              }`}
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${!isAnnual
+                ? "bg-white text-black"
+                : "text-zinc-400 hover:text-white"
+                }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setIsAnnual(true)}
-              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all ${
-                isAnnual
-                  ? "bg-white text-black"
-                  : "text-zinc-400 hover:text-white"
-              }`}
+              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all ${isAnnual
+                ? "bg-white text-black"
+                : "text-zinc-400 hover:text-white"
+                }`}
             >
               Annual
               <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">
@@ -132,11 +131,10 @@ export function PricingSection() {
             return (
               <Card
                 key={index}
-                className={`relative overflow-hidden border backdrop-blur-xl ${
-                  tier.highlighted
-                    ? "border-indigo-500/50 bg-gradient-to-b from-indigo-500/10 to-zinc-900/50"
-                    : "border-white/10 bg-zinc-900/50"
-                }`}
+                className={`relative overflow-hidden border backdrop-blur-xl ${tier.highlighted
+                  ? "border-indigo-500/50 bg-linear-to-b from-indigo-500/10 to-zinc-900/50"
+                  : "border-white/10 bg-zinc-900/50"
+                  }`}
               >
                 {tier.badge && (
                   <div className="absolute left-4 top-4">
@@ -182,13 +180,12 @@ export function PricingSection() {
                   <ul className="mb-8 space-y-3">
                     {tier.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-3">
-                        <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" />
+                        <HugeiconsIcon icon={Check} className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                         <span
-                          className={`text-sm ${
-                            feature.includes("locked") || feature.includes("forever")
-                              ? "font-medium text-white"
-                              : "text-zinc-300"
-                          }`}
+                          className={`text-sm ${feature.includes("locked") || feature.includes("forever")
+                            ? "font-medium text-white"
+                            : "text-zinc-300"
+                            }`}
                         >
                           {feature}
                         </span>
@@ -199,11 +196,10 @@ export function PricingSection() {
                   {/* CTA */}
                   <Link href={tier.href} className="block">
                     <Button
-                      className={`w-full ${
-                        tier.highlighted
-                          ? "bg-white text-black hover:bg-zinc-200"
-                          : "border border-white/20 bg-transparent text-white hover:bg-white/10"
-                      }`}
+                      className={`w-full ${tier.highlighted
+                        ? "bg-white text-black hover:bg-zinc-200"
+                        : "border border-white/20 bg-transparent text-white hover:bg-white/10"
+                        }`}
                     >
                       {tier.cta}
                     </Button>

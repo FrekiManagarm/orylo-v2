@@ -3,7 +3,8 @@
 import Footer from "@/components/landing/footer";
 import Navbar from "@/components/landing/navbar";
 import { motion } from "framer-motion";
-import { Shield, Users, Zap } from "lucide-react";
+import { Shield, Users, Zap } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const stats = [
   { label: "Transactions Analyzed", value: "1M+" },
@@ -124,7 +125,7 @@ export function AboutContent() {
             >
               <div className="absolute inset-0 bg-linear-to-br from-indigo-500/10 to-purple-500/10" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Shield className="w-32 h-32 text-indigo-500/20" />
+                <HugeiconsIcon icon={Shield} className="w-32 h-32 text-indigo-500/20" />
               </div>
               {/* Decorative elements */}
               <div className="absolute top-10 right-10 p-4 bg-black/50 backdrop-blur-md rounded-lg border border-white/10">
@@ -159,7 +160,7 @@ export function AboutContent() {
                   className="p-8 rounded-2xl bg-zinc-900/50 border border-white/10 hover:border-indigo-500/50 transition-all duration-300"
                 >
                   <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-6 text-indigo-400">
-                    <value.icon className="w-6 h-6" />
+                    <HugeiconsIcon icon={value.icon} className="w-6 h-6" />
                   </div>
                   <h3 className="text-xl font-bold mb-4 text-white">
                     {value.title}

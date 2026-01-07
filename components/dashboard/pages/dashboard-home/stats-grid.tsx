@@ -5,7 +5,8 @@ import {
   Zap,
   ArrowUpRight,
   ArrowDownRight,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardStats } from "@/lib/actions/fraud-analyses";
 
@@ -73,7 +74,7 @@ export const StatsGrid = async ({
             <CardTitle className="text-sm font-medium text-zinc-400 group-hover:text-zinc-300 transition-colors">
               {stat.title}
             </CardTitle>
-            <stat.icon className="h-4 w-4 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
+            <HugeiconsIcon icon={stat.icon} className="h-4 w-4 text-zinc-500 group-hover:text-indigo-400 transition-colors" />
           </CardHeader>
           <CardContent>
             <div
@@ -83,9 +84,9 @@ export const StatsGrid = async ({
             </div>
             <div className="flex items-center text-xs text-zinc-500 mt-1">
               {stat.trend === "up" ? (
-                <ArrowUpRight className="mr-1 h-4 w-4 text-emerald-500" />
+                <HugeiconsIcon icon={ArrowUpRight} className="mr-1 h-4 w-4 text-emerald-500" />
               ) : (
-                <ArrowDownRight className="mr-1 h-4 w-4 text-rose-500" />
+                <HugeiconsIcon icon={ArrowDownRight} className="mr-1 h-4 w-4 text-rose-500" />
               )}
               <span
                 className={

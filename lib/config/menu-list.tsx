@@ -1,27 +1,26 @@
 import {
   LayoutGrid,
-  LucideIcon,
   Settings,
   FileText,
   Link as LinkIcon,
   Shield,
-  AlertCircle,
-  ShieldAlert,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+// Type pour les icônes Hugeicons (objets SVG, pas composants React)
+type HugeIconType = typeof LayoutGrid;
 
 export type Submenu = {
   href: string;
   label: string;
   active: boolean;
   comingSoon?: boolean;
-  icon: LucideIcon;
+  icon: HugeIconType;
 };
 
 export type Menu = {
   href: string;
   label: string;
   active: boolean;
-  icon: LucideIcon;
+  icon: HugeIconType;
   submenus?: Submenu[];
   comingSoon?: boolean;
 };
@@ -48,12 +47,6 @@ export function proMenuList(pathname: string): Group[] {
       groupLabel: "Fraud Detection",
       menus: [
         {
-          href: `/dashboard/card-testing`,
-          label: "Card Testing",
-          active: pathname === `/dashboard/card-testing`,
-          icon: ShieldAlert,
-        },
-        {
           href: `/dashboard/transactions`,
           label: "Transactions",
           active: pathname === `/dashboard/transactions`,
@@ -70,12 +63,6 @@ export function proMenuList(pathname: string): Group[] {
     {
       groupLabel: "Settings",
       menus: [
-        {
-          href: `/dashboard/alerts`,
-          label: "Alerts",
-          active: pathname === `/dashboard/alerts`,
-          icon: AlertCircle,
-        },
         {
           href: `/dashboard/connect`,
           label: "Stripe Connect",

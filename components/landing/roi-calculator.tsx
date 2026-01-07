@@ -6,7 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Calculator, Euro, TrendingUp, AlertTriangle, ArrowRight } from "lucide-react";
+import { Calculator, Euro, TrendingUp, AlertTriangle, ArrowRight } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 export default function RoiCalculator() {
   const [volume, setVolume] = useState([50000]);
@@ -59,7 +60,7 @@ export default function RoiCalculator() {
             viewport={{ once: true }}
             className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full border border-indigo-500/20 bg-indigo-500/10"
           >
-            <Calculator className="w-4 h-4 text-indigo-400" />
+            <HugeiconsIcon icon={Calculator} className="w-4 h-4 text-indigo-400" />
             <span className="text-sm font-medium text-indigo-400">
               Savings Simulator
             </span>
@@ -191,7 +192,7 @@ export default function RoiCalculator() {
                 <div className="absolute inset-0 bg-red-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-2 text-red-400">
-                    <AlertTriangle className="w-5 h-5" />
+                    <HugeiconsIcon icon={AlertTriangle} className="w-5 h-5" />
                     <span className="font-medium text-sm">Estimated current losses / month</span>
                   </div>
                   <div className="text-3xl font-mono text-white mb-2">
@@ -212,7 +213,7 @@ export default function RoiCalculator() {
 
                 <div className="relative z-10 text-center">
                   <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-500/20 text-indigo-300 mb-6 shadow-inner shadow-indigo-500/20 border border-indigo-500/20">
-                    <TrendingUp className="w-7 h-7" />
+                    <HugeiconsIcon icon={TrendingUp} className="w-7 h-7" />
                   </div>
 
                   <h3 className="text-zinc-300 font-medium mb-4 text-lg">Potential savings with Orylo</h3>
@@ -237,7 +238,7 @@ export default function RoiCalculator() {
                       </span>
                       <span className="relative z-10 inline-flex items-center gap-2 text-sm font-medium text-white/90">
                         Start Free Trial
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                        <HugeiconsIcon icon={ArrowRight} className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
                       </span>
                     </a>
                   </div>

@@ -10,7 +10,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, Zap, Store } from "lucide-react";
+import { LoaderCircle, Zap, Store } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { simulatePaymentIntent } from "@/lib/actions/simulate-payment";
 import {
   Select,
@@ -98,7 +99,7 @@ export function SimulatePaymentButton() {
           variant="outline"
           className="w-full h-24 flex flex-col items-center justify-center gap-2 bg-zinc-900/50 border-white/5 hover:bg-white/5 hover:border-indigo-500/30 hover:text-indigo-400 transition-all group"
         >
-          <Zap className="h-6 w-6 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
+          <HugeiconsIcon icon={Zap} className="h-6 w-6 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
           <span className="text-xs font-medium">Test Payment</span>
         </Button>
       </DialogTrigger>
@@ -124,7 +125,7 @@ export function SimulatePaymentButton() {
             </label>
             {loadingConnections ? (
               <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+                <HugeiconsIcon icon={LoaderCircle} className="h-5 w-5 animate-spin text-zinc-400" />
                 <span className="ml-2 text-sm text-zinc-400">
                   Chargement des comptes...
                 </span>
@@ -151,7 +152,7 @@ export function SimulatePaymentButton() {
                   <SelectValue placeholder="Sélectionner un compte">
                     {selectedConnection && (
                       <div className="flex items-center gap-2">
-                        <Store className="h-4 w-4 text-indigo-400" />
+                        <HugeiconsIcon icon={Store} className="h-4 w-4 text-indigo-400" />
                         <span>
                           {`Compte ${selectedConnection.stripeAccountId.slice(-8)}`}
                         </span>
@@ -169,7 +170,7 @@ export function SimulatePaymentButton() {
                         className="text-white"
                       >
                         <div className="flex items-center gap-2">
-                          <Store className="h-4 w-4 text-indigo-400" />
+                          <HugeiconsIcon icon={Store} className="h-4 w-4 text-indigo-400" />
                           <div className="flex flex-col">
                             <span>
                               Compte Stripe {connection.stripeAccountId.slice(0, 21)}...
@@ -256,12 +257,12 @@ export function SimulatePaymentButton() {
           >
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
                 Redirection...
               </>
             ) : (
               <>
-                <Zap className="mr-2 h-4 w-4" />
+                <HugeiconsIcon icon={Zap} className="mr-2 h-4 w-4" />
                 Créer la session de paiement
               </>
             )}

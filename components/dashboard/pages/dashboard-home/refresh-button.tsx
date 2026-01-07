@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
@@ -23,7 +24,7 @@ export function RefreshButton() {
       className="gap-2 text-zinc-400 hover:text-white hover:bg-white/5"
       disabled={isRefreshing}
     >
-      <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+      <HugeiconsIcon icon={RefreshCw} className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
       Rafraîchir
     </Button>
   );

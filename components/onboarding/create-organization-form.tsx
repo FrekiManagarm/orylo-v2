@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "@tanstack/react-form";
 import { toast } from "sonner";
-import { Loader2, LogOut, Shield, Sparkles } from "lucide-react";
+import { LoaderCircle, LogOut, Shield, Sparkles } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { createOrganization } from "@/lib/actions/organization";
 import { signOut } from "@/lib/auth/auth.client";
@@ -127,7 +128,7 @@ export function CreateOrganizationForm() {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="rounded-full bg-indigo-500/10 p-2 border border-indigo-500/30 text-indigo-300">
-              <Shield className="h-5 w-5" />
+              <HugeiconsIcon icon={Shield} className="h-5 w-5" />
             </div>
             <div>
               <CardTitle className="text-2xl font-bold text-white">
@@ -147,12 +148,12 @@ export function CreateOrganizationForm() {
           >
             {isSigningOut ? (
               <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={LoaderCircle} className="h-4 w-4 animate-spin" />
                 <span>Signing out…</span>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
+                <HugeiconsIcon icon={LogOut} className="h-4 w-4" />
                 <span>Sign out</span>
               </div>
             )}
@@ -278,7 +279,7 @@ export function CreateOrganizationForm() {
                   disabled={isPending}
                 >
                   {isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   Launch my secure workspace
                 </Button>
@@ -287,7 +288,7 @@ export function CreateOrganizationForm() {
           </div>
           <div className="rounded-xl border border-white/10 bg-linear-to-br from-indigo-500/10 via-zinc-900/60 to-zinc-900/60 p-4 shadow-inner space-y-4">
             <div className="flex items-center gap-3 text-indigo-300">
-              <Sparkles className="h-4 w-4" />
+              <HugeiconsIcon icon={Sparkles} className="h-4 w-4" />
               <p className="text-sm font-medium">Why create an organization?</p>
             </div>
             <Separator className="bg-white/5" />

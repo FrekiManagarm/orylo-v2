@@ -35,14 +35,15 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
   Plus,
-  Loader2,
+  LoaderCircle,
   ChevronRight,
   Info,
   Zap,
   Filter,
   Sparkles,
   ArrowRight,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { createRule, type CreateRuleInput } from "@/lib/actions/rules";
 import { cn } from "@/lib/utils";
 
@@ -190,7 +191,7 @@ export function CreateRuleDialog({ organizationId }: CreateRuleDialogProps) {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button className="bg-white text-black hover:bg-zinc-200 border border-transparent shadow-none transition-all">
-          <Plus className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={Plus} className="mr-2 h-4 w-4" />
           Créer une règle
         </Button>
       </DialogTrigger>
@@ -594,7 +595,7 @@ export function CreateRuleDialog({ organizationId }: CreateRuleDialogProps) {
                         children={(state) => (
                           <div className="rounded-lg bg-zinc-900/50 border border-white/5 p-4 mt-6">
                             <div className="flex items-start gap-3">
-                              <Sparkles className="h-4 w-4 text-indigo-400 mt-0.5 shrink-0" />
+                              <HugeiconsIcon icon={Sparkles} className="h-4 w-4 text-indigo-400 mt-0.5 shrink-0" />
                               <div className="space-y-1">
                                 <p className="text-sm font-medium text-zinc-200">
                                   Aperçu de la condition
@@ -662,7 +663,7 @@ export function CreateRuleDialog({ organizationId }: CreateRuleDialogProps) {
                     className="bg-white text-black hover:bg-zinc-200"
                   >
                     Suivant
-                    <ChevronRight className="ml-2 h-4 w-4" />
+                    <HugeiconsIcon icon={ChevronRight} className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
                   <Button
@@ -672,13 +673,13 @@ export function CreateRuleDialog({ organizationId }: CreateRuleDialogProps) {
                   >
                     {createRuleMutation.isPending ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
                         Création...
                       </>
                     ) : (
                       <>
                         Créer la règle
-                        <ArrowRight className="ml-2 h-4 w-4" />
+                        <HugeiconsIcon icon={ArrowRight} className="ml-2 h-4 w-4" />
                       </>
                     )}
                   </Button>

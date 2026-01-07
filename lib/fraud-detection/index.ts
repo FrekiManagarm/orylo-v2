@@ -44,10 +44,14 @@ export {
   trackPaymentAttempt,
   shouldBlockSession,
   getSessionSummary,
+  type TrackPaymentAttemptResult,
 } from "./velocity";
 
 // Card testing detection
 export * from "./card-testing";
+
+// Composite risk score
+export * from "./composite-score";
 
 // Context building
 export * from "./context-builder";

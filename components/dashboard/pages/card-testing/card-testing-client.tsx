@@ -8,15 +8,16 @@ import {
   CreditCard,
   Clock,
   AlertTriangle,
-  CheckCircle2,
-  Ban,
+  CheckCircle,
+  Locked,
   RefreshCw,
   ChevronDown,
   ChevronUp,
   Fingerprint,
   Globe,
   Activity,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { cn } from "@/lib/utils";
 import type { CardTestingTracker, CardTestingAttempt } from "@/lib/db/schemas/cardTestingTrackers";
 import { unblockSession } from "@/lib/actions/card-testing";
@@ -56,7 +57,7 @@ const CardTestingClient = ({ initialTrackers, stats }: CardTestingClientProps) =
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-2xl font-medium tracking-tight text-white flex items-center gap-3">
-            <ShieldAlert className="w-7 h-7 text-indigo-400" />
+            <HugeiconsIcon icon={ShieldAlert} className="w-7 h-7 text-indigo-400" />
             Card Testing Detection
           </h1>
           <p className="text-zinc-400 mt-1 text-sm">
@@ -68,7 +69,7 @@ const CardTestingClient = ({ initialTrackers, stats }: CardTestingClientProps) =
           onClick={() => router.refresh()}
           className="bg-zinc-900/50 border-white/10 text-zinc-300 hover:text-white hover:bg-white/5 transition-all"
         >
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={RefreshCw} className="mr-2 h-4 w-4" />
           Refresh
         </Button>
       </div>
@@ -78,25 +79,25 @@ const CardTestingClient = ({ initialTrackers, stats }: CardTestingClientProps) =
         <StatCard
           title="Blocked (24h)"
           value={stats.last24hBlocked}
-          icon={<Ban className="w-5 h-5" />}
+          icon={<HugeiconsIcon icon={Locked} className="w-5 h-5" />}
           color="rose"
         />
         <StatCard
           title="Total Blocked"
           value={stats.totalBlocked}
-          icon={<ShieldAlert className="w-5 h-5" />}
+          icon={<HugeiconsIcon icon={ShieldAlert} className="w-5 h-5" />}
           color="orange"
         />
         <StatCard
           title="Suspicious"
           value={stats.totalSuspicious}
-          icon={<AlertTriangle className="w-5 h-5" />}
+          icon={<HugeiconsIcon icon={AlertTriangle} className="w-5 h-5" />}
           color="yellow"
         />
         <StatCard
           title="Sessions Analyzed"
           value={stats.totalSessions}
-          icon={<Activity className="w-5 h-5" />}
+          icon={<HugeiconsIcon icon={Activity} className="w-5 h-5" />}
           color="indigo"
         />
       </div>
@@ -132,9 +133,9 @@ const CardTestingClient = ({ initialTrackers, stats }: CardTestingClientProps) =
             <SessionCard
               key={tracker.id}
               tracker={tracker}
-              expanded={expandedId === tracker.id}
-              onToggle={() => setExpandedId(expandedId === tracker.id ? null : tracker.id)}
-              onUnblock={() => handleUnblock(tracker.id)}
+              expanded={expandedId === Number(tracker.id)}
+              onToggle={() => setExpandedId(expandedId === Number(tracker.id) ? null : Number(tracker.id))}
+              onUnblock={() => handleUnblock(Number(tracker.id))}
             />
           ))
         )}
@@ -264,7 +265,7 @@ function SessionCard({
                 getScoreColor(score)
               )}
             >
-              <CreditCard className="w-5 h-5" />
+              <HugeiconsIcon icon={CreditCard} className="w-5 h-5" />
             </div>
 
             <div className="space-y-1">
@@ -284,15 +285,15 @@ function SessionCard({
 
               <div className="flex items-center gap-4 text-xs text-zinc-500">
                 <span className="flex items-center gap-1.5">
-                  <Fingerprint className="w-3.5 h-3.5" />
+                  <HugeiconsIcon icon={Fingerprint} className="w-3.5 h-3.5" />
                   {uniqueCards} card{uniqueCards !== 1 ? "s" : ""}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5" />
+                  <HugeiconsIcon icon={Activity} className="w-3.5 h-3.5" />
                   {attempts.length} attempt{attempts.length !== 1 ? "s" : ""}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />
+                  <HugeiconsIcon icon={Clock} className="w-3.5 h-3.5" />
                   {new Date(tracker.updatedAt).toLocaleDateString()}
                 </span>
               </div>
@@ -319,7 +320,7 @@ function SessionCard({
                 onClick={onUnblock}
                 className="bg-zinc-900/50 border-white/10 text-zinc-300 hover:text-white hover:bg-white/5"
               >
-                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                <HugeiconsIcon icon={CheckCircle} className="mr-1.5 h-3.5 w-3.5" />
                 Unblock
               </Button>
             )}
@@ -331,9 +332,9 @@ function SessionCard({
               className="text-zinc-400 hover:text-white"
             >
               {expanded ? (
-                <ChevronUp className="h-4 w-4" />
+                <HugeiconsIcon icon={ChevronUp} className="h-4 w-4" />
               ) : (
-                <ChevronDown className="h-4 w-4" />
+                <HugeiconsIcon icon={ChevronDown} className="h-4 w-4" />
               )}
             </Button>
           </div>
@@ -369,7 +370,7 @@ function AttemptRow({ attempt, index }: { attempt: CardTestingAttempt; index: nu
       <span className="text-xs text-zinc-600 w-6">#{index}</span>
 
       <div className="flex items-center gap-2">
-        <CreditCard className="w-4 h-4 text-zinc-500" />
+        <HugeiconsIcon icon={CreditCard} className="w-4 h-4 text-zinc-500" />
         <span className="text-sm text-zinc-300 font-mono">
           •••• {attempt.cardLast4}
         </span>
@@ -386,7 +387,7 @@ function AttemptRow({ attempt, index }: { attempt: CardTestingAttempt; index: nu
 
       {attempt.ipAddress && (
         <span className="flex items-center gap-1 text-xs text-zinc-500">
-          <Globe className="w-3 h-3" />
+          <HugeiconsIcon icon={Globe} className="w-3 h-3" />
           {attempt.ipAddress}
         </span>
       )}
@@ -402,7 +403,7 @@ function EmptyState({ filter }: { filter: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="p-4 rounded-full bg-zinc-900/50 border border-white/10 mb-4">
-        <ShieldAlert className="w-8 h-8 text-zinc-500" />
+        <HugeiconsIcon icon={ShieldAlert} className="w-8 h-8 text-zinc-500" />
       </div>
       <h3 className="text-lg font-medium text-white mb-2">
         No {filter !== "all" ? filter : ""} sessions found

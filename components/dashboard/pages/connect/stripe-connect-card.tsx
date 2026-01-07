@@ -3,13 +3,14 @@
 import { JSX, useOptimistic } from "react";
 import { toast } from "sonner";
 import {
-  CheckCircle2,
-  Loader2,
+  CheckCircle,
+  LoaderCircle,
   Plus,
   RefreshCw,
   Trash2,
   CreditCard
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 
@@ -102,7 +103,7 @@ export function ConnectStripeCard({
           <div className="space-y-1">
             <CardTitle className="text-white flex items-center gap-2 text-xl">
               <div className="h-8 w-8 rounded-lg bg-[#635BFF]/10 flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-[#635BFF]" />
+                <HugeiconsIcon icon={CreditCard} className="h-5 w-5 text-[#635BFF]" />
               </div>
               Stripe Integration
               {optimisticConnections.length > 0 && (
@@ -126,9 +127,9 @@ export function ConnectStripeCard({
             size="sm"
           >
             {connectMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Plus className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={Plus} className="mr-2 h-4 w-4" />
             )}
             Connect Account
           </Button>
@@ -138,7 +139,7 @@ export function ConnectStripeCard({
         {optimisticConnections.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-white/5 rounded-xl bg-white/2 hover:bg-white/4 transition-colors">
             <div className="h-16 w-16 rounded-full bg-[#635BFF]/10 flex items-center justify-center mb-4">
-              <CreditCard className="h-8 w-8 text-[#635BFF]" />
+              <HugeiconsIcon icon={CreditCard} className="h-8 w-8 text-[#635BFF]" />
             </div>
             <h3 className="text-white font-medium text-lg mb-2">
               No accounts connected
@@ -153,7 +154,7 @@ export function ConnectStripeCard({
               disabled={connectMutation.isPending}
             >
               {connectMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
               Connect Stripe
             </Button>
@@ -204,9 +205,9 @@ export function ConnectStripeCard({
                       disabled={disconnectMutation.isPending}
                     >
                       {disconnectMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <HugeiconsIcon icon={LoaderCircle} className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Trash2 className="h-4 w-4" />
+                        <HugeiconsIcon icon={Trash2} className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
@@ -214,7 +215,7 @@ export function ConnectStripeCard({
                   <div className="px-5 py-4 bg-black/20 border-t border-white/5 grid grid-cols-2 gap-8">
                     <div>
                       <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-1.5 uppercase tracking-wider">
-                        <RefreshCw className="h-3 w-3" />
+                        <HugeiconsIcon icon={RefreshCw} className="h-3 w-3" />
                         Last Synced
                       </div>
                       <span className="text-zinc-300 text-sm font-medium">
@@ -227,7 +228,7 @@ export function ConnectStripeCard({
                     </div>
                     <div>
                       <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 mb-1.5 uppercase tracking-wider">
-                        <CheckCircle2 className="h-3 w-3" />
+                        <HugeiconsIcon icon={CheckCircle} className="h-3 w-3" />
                         Webhook Status
                       </div>
                       <div className="flex items-center gap-2">

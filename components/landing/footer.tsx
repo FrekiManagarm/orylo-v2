@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Github, Twitter, Linkedin } from "lucide-react";
+import { Github, Twitter, Linkedin } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
 
 export default function Footer() {
@@ -33,38 +34,38 @@ export default function Footer() {
                   href="#"
                   className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300"
                 >
-                  <Icon className="h-5 w-5" />
+                  <HugeiconsIcon icon={Icon} className="h-5 w-5" />
                 </Link>
               ))}
             </div>
           </div>
 
           {[
-            { 
-              title: "Product", 
+            {
+              title: "Product",
               links: [
                 { label: "Features", href: "/#features" },
                 { label: "Pricing", href: "/#pricing" },
                 { label: "Documentation", href: "#" },
                 { label: "Changelog", href: "#" }
-              ] 
+              ]
             },
-            { 
-              title: "Company", 
+            {
+              title: "Company",
               links: [
                 { label: "About", href: "/about" },
                 { label: "Careers", href: "#" },
                 { label: "Blog", href: "#" },
                 { label: "Contact", href: "/contact" }
-              ] 
+              ]
             },
-            { 
-              title: "Legal", 
+            {
+              title: "Legal",
               links: [
                 { label: "Privacy Policy", href: "/privacy" },
                 { label: "Terms of Service", href: "/cgu" },
                 { label: "Cookie Policy", href: "#" }
-              ] 
+              ]
             }
           ].map((column, idx) => (
             <div key={idx}>

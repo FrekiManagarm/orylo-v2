@@ -17,7 +17,8 @@ import {
   ChevronRight,
   LogOut,
   User,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Sidebar,
   SidebarContent,
@@ -111,7 +112,7 @@ export function DashboardSidebar({
       logger.error("Error changing organization:", error);
       toast.error("Erreur lors du changement de compte", {
         description: "Veuillez réessayer",
-        icon: <AlertCircle className="h-5 w-5 text-white" />,
+        icon: <HugeiconsIcon icon={AlertCircle} className="h-5 w-5 text-white" />,
       });
       setShowProfessionalDialog(false);
     } finally {
@@ -126,9 +127,9 @@ export function DashboardSidebar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton isActive={menu.active} tooltip={menu.label}>
-              {menu.icon && <menu.icon className="h-4 w-4" />}
+              {menu.icon && <HugeiconsIcon icon={menu.icon} className="h-4 w-4" />}
               <span>{menu.label}</span>
-              <ChevronRight className="ml-auto h-4 w-4" />
+              <HugeiconsIcon icon={ChevronRight} className="ml-auto h-4 w-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right" align="start" className="w-48">
@@ -143,7 +144,7 @@ export function DashboardSidebar({
                     submenu.active && "bg-accent text-accent-foreground",
                   )}
                 >
-                  {submenu.icon && <submenu.icon className="h-4 w-4" />}
+                  {submenu.icon && <HugeiconsIcon icon={submenu.icon} className="h-4 w-4" />}
                   <span>{submenu.label}</span>
                 </a>
               </DropdownMenuItem>
@@ -161,9 +162,9 @@ export function DashboardSidebar({
         <SidebarMenuItem>
           <CollapsibleTrigger asChild>
             <SidebarMenuButton className="group" isActive={menu.active}>
-              {menu.icon && <menu.icon className="h-4 w-4" />}
+              {menu.icon && <HugeiconsIcon icon={menu.icon} className="h-4 w-4" />}
               <span>{menu.label}</span>
-              <ChevronRight className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
+              <HugeiconsIcon icon={ChevronRight} className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-90" />
             </SidebarMenuButton>
           </CollapsibleTrigger>
           <CollapsibleContent>
@@ -175,7 +176,7 @@ export function DashboardSidebar({
                       href={submenu.href}
                       className="flex items-center gap-2"
                     >
-                      {submenu.icon && <submenu.icon className="h-4 w-4" />}
+                      {submenu.icon && <HugeiconsIcon icon={submenu.icon} className="h-4 w-4" />}
                       <span>{submenu.label}</span>
                     </Link>
                   </SidebarMenuSubButton>
@@ -206,7 +207,7 @@ export function DashboardSidebar({
                         className="object-cover rounded-xl"
                       />
                     ) : (
-                      <Building className="size-4" />
+                      <HugeiconsIcon icon={Building} className="size-4" />
                     )}
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
@@ -217,7 +218,7 @@ export function DashboardSidebar({
                       {activeOrganization?.name}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto" />
+                  <HugeiconsIcon icon={ChevronsUpDown} className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -276,7 +277,7 @@ export function DashboardSidebar({
                                     : "bg-primary/10 hover:bg-primary/15",
                                 )}
                               >
-                                <Building className="h-4 w-4 text-primary" />
+                                <HugeiconsIcon icon={Building} className="h-4 w-4 text-primary" />
                               </div>
                             )}
                             <div className="flex flex-col">
@@ -290,7 +291,7 @@ export function DashboardSidebar({
                               </span>
                             </div>
                             {activeOrganization?.id === org.id && (
-                              <Check className="h-4 w-4 ml-auto text-primary animate-in zoom-in-50 duration-300" />
+                              <HugeiconsIcon icon={Check} className="h-4 w-4 ml-auto text-primary animate-in zoom-in-50 duration-300" />
                             )}
                           </DropdownMenuItem>
                         ))}
@@ -306,7 +307,7 @@ export function DashboardSidebar({
                         className="group flex items-center gap-3 p-2 rounded-md hover:bg-accent hover:translate-x-1 transition-all cursor-pointer duration-200 hover:shadow-sm"
                       >
                         <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0 transition-all duration-300 hover:bg-primary/20">
-                          <Plus className="h-4 w-4 text-primary" />
+                          <HugeiconsIcon icon={Plus} className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-medium leading-none">
@@ -355,7 +356,7 @@ export function DashboardSidebar({
                             menu.active && "font-medium",
                           )}
                         >
-                          {menu.icon && <menu.icon className="h-4 w-4 cursor-pointer" />}
+                          {menu.icon && <HugeiconsIcon icon={menu.icon} className="h-4 w-4 cursor-pointer" />}
                           <span>{menu.label}</span>
                         </a>
                       </SidebarMenuButton>
@@ -402,7 +403,7 @@ export function DashboardSidebar({
                               menu.active && "font-medium",
                             )}
                           >
-                            {menu.icon && <menu.icon className="h-4 w-4" />}
+                            {menu.icon && <HugeiconsIcon icon={menu.icon} className="h-4 w-4" />}
                             <span>{menu.label}</span>
                           </a>
                         </SidebarMenuButton>
@@ -440,7 +441,7 @@ export function DashboardSidebar({
                       {session.user.email}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
+                  <HugeiconsIcon icon={ChevronsUpDown} className="ml-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -471,7 +472,7 @@ export function DashboardSidebar({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => setShowProfile(true)}>
-                  <User className="size-4" />
+                  <HugeiconsIcon icon={User} className="size-4" />
                   Mon profil
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -481,13 +482,13 @@ export function DashboardSidebar({
                     await signOut({
                       fetchOptions: {
                         onSuccess: () => {
-                          router.push("/sign-in");
+                          router.push("/");
                         },
                       },
                     });
                   }}
                 >
-                  <LogOut className="size-4 text-red-500 group-hover:text-white" />
+                  <HugeiconsIcon icon={LogOut} className="size-4 text-red-500 group-hover:text-white" />
                   Se déconnecter
                 </DropdownMenuItem>
               </DropdownMenuContent>

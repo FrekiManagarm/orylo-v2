@@ -5,13 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   CreditCard,
-  Loader2,
+  LoaderCircle,
   CheckCircle,
   AlertCircle,
   Settings,
   Trash2,
   RefreshCw,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { connectStripeAccount } from "@/lib/actions/stripe-connect";
 import type { StripeConnection } from "@/lib/db/schemas/stripeConnections";
@@ -117,7 +118,7 @@ export function StripeConnectPage({
 
       {searchParams.get("success") === "stripe_connected" && (
         <Alert className="border-green-500/30 bg-green-500/10">
-          <CheckCircle className="h-4 w-4 text-green-500" />
+          <HugeiconsIcon icon={CheckCircle} className="h-4 w-4 text-green-500" />
           <AlertDescription className="text-green-700 dark:text-green-300">
             Connexion réussie ! Redirection en cours...
           </AlertDescription>
@@ -126,7 +127,7 @@ export function StripeConnectPage({
 
       {searchParams.get("error") === "stripe_connection_failed" && (
         <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
+          <HugeiconsIcon icon={AlertCircle} className="h-4 w-4" />
           <AlertDescription>
             La connexion a échoué. Veuillez réessayer.
           </AlertDescription>
@@ -151,7 +152,7 @@ export function StripeConnectPage({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="rounded-full bg-primary/10 p-2">
-                        <CreditCard className="h-5 w-5 text-primary" />
+                        <HugeiconsIcon icon={CreditCard} className="h-5 w-5 text-primary" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -185,10 +186,10 @@ export function StripeConnectPage({
                     </div>
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="icon" title="Synchroniser">
-                        <RefreshCw className="h-4 w-4" />
+                        <HugeiconsIcon icon={RefreshCw} className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" title="Paramètres">
-                        <Settings className="h-4 w-4" />
+                        <HugeiconsIcon icon={Settings} className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -204,7 +205,7 @@ export function StripeConnectPage({
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="rounded-full bg-primary/10 p-3">
-                <CreditCard className="h-6 w-6 text-primary" />
+                <HugeiconsIcon icon={CreditCard} className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <CardTitle>
@@ -224,19 +225,19 @@ export function StripeConnectPage({
             </p>
             <ul className="space-y-2 text-sm">
               <li className="flex gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+                <HugeiconsIcon icon={CheckCircle} className="h-5 w-5 text-green-500 shrink-0" />
                 <span>Analyser vos transactions en temps réel</span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+                <HugeiconsIcon icon={CheckCircle} className="h-5 w-5 text-green-500 shrink-0" />
                 <span>Détecter les comportements frauduleux</span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+                <HugeiconsIcon icon={CheckCircle} className="h-5 w-5 text-green-500 shrink-0" />
                 <span>Générer des alertes personnalisées</span>
               </li>
               <li className="flex gap-2">
-                <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+                <HugeiconsIcon icon={CheckCircle} className="h-5 w-5 text-green-500 shrink-0" />
                 <span>Bloquer automatiquement les transactions suspectes</span>
               </li>
             </ul>
@@ -248,12 +249,12 @@ export function StripeConnectPage({
             >
               {isConnecting || isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />
                   Connexion en cours...
                 </>
               ) : (
                 <>
-                  <CreditCard className="mr-2 h-4 w-4" />
+                  <HugeiconsIcon icon={CreditCard} className="mr-2 h-4 w-4" />
                   {hasActiveConnection
                     ? "Connecter un autre compte"
                     : "Connecter avec Stripe"}
@@ -313,7 +314,7 @@ export function StripeConnectPage({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="rounded-full bg-green-500/20 p-3">
-                  <CheckCircle className="h-6 w-6 text-green-500" />
+                  <HugeiconsIcon icon={CheckCircle} className="h-6 w-6 text-green-500" />
                 </div>
                 <div>
                   <h3 className="font-semibold">Compte Stripe actif</h3>

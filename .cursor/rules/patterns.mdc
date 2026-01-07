@@ -1,8 +1,7 @@
 ---
-description: Patterns de code, conventions et bonnes pratiques générales
-globs: ["**/*.ts", "**/*.tsx"]
+globs: **/*.tsx,**/*.ts
+alwaysApply: false
 ---
-
 # Patterns de Code & Conventions
 
 ## Langue et Communication

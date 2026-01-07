@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Shield,
   Clock,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,28 +51,28 @@ const ActionBadge = ({ action }: { action: string }) => {
     case "block":
       return (
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-medium uppercase tracking-wider">
-          <ShieldAlert className="w-3 h-3" />
+          <HugeiconsIcon icon={ShieldAlert} className="w-3 h-3" />
           Block
         </div>
       );
     case "review":
       return (
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[10px] font-medium uppercase tracking-wider">
-          <Clock className="w-3 h-3" />
+          <HugeiconsIcon icon={Clock} className="w-3 h-3" />
           Review
         </div>
       );
     case "require_3ds":
       return (
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-medium uppercase tracking-wider">
-          <ShieldCheck className="w-3 h-3" />
+          <HugeiconsIcon icon={ShieldCheck} className="w-3 h-3" />
           3D Secure
         </div>
       );
     default:
       return (
         <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-500/10 border border-zinc-500/20 text-zinc-400 text-[10px] font-medium uppercase tracking-wider">
-          <Shield className="w-3 h-3" />
+          <HugeiconsIcon icon={Shield} className="w-3 h-3" />
           Alert
         </div>
       );
@@ -85,7 +86,7 @@ const RulesClient = ({ initialRules }: RulesClientProps) => {
   const [deletingRule, setDeletingRule] = useState<Rule | null>(null);
 
   const deleteRuleMutation = useMutation({
-    mutationFn: async (ruleId: number) => {
+    mutationFn: async (ruleId: string) => {
       return deleteRule(ruleId);
     },
     onSuccess: (result) => {
@@ -104,7 +105,7 @@ const RulesClient = ({ initialRules }: RulesClientProps) => {
   });
 
   const toggleEnabledMutation = useMutation({
-    mutationFn: async ({ ruleId, enabled }: { ruleId: number; enabled: boolean }) => {
+    mutationFn: async ({ ruleId, enabled }: { ruleId: string; enabled: boolean }) => {
       return toggleRuleEnabled(ruleId, enabled);
     },
     onSuccess: (result) => {
@@ -135,14 +136,14 @@ const RulesClient = ({ initialRules }: RulesClientProps) => {
     setEditingRule(rule);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingRule) {
-      deleteRuleMutation.mutate(deletingRule.id);
+      await deleteRuleMutation.mutateAsync(deletingRule.id);
     }
   };
 
   return (
-    <div className="min-h-screen space-y-8">
+    <div className="min-h-screen space-y-8 p-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white">
@@ -160,7 +161,7 @@ const RulesClient = ({ initialRules }: RulesClientProps) => {
       <div className="grid gap-4">
         {initialRules.length === 0 ? (
           <div className="rounded-lg border border-white/5 bg-zinc-900/30 p-12 text-center">
-            <Shield className="mx-auto h-12 w-12 text-zinc-600" />
+            <HugeiconsIcon icon={Shield} className="mx-auto h-12 w-12 text-zinc-600" />
             <h3 className="mt-4 text-lg font-medium text-white">
               Aucune règle définie
             </h3>
@@ -189,13 +190,13 @@ const RulesClient = ({ initialRules }: RulesClientProps) => {
                     )}
                   >
                     {rule.action === "block" ? (
-                      <ShieldAlert className="w-5 h-5" />
+                      <HugeiconsIcon icon={ShieldAlert} className="w-5 h-5" />
                     ) : rule.action === "review" ? (
-                      <Clock className="w-5 h-5" />
+                      <HugeiconsIcon icon={Clock} className="w-5 h-5" />
                     ) : rule.action === "require_3ds" ? (
-                      <ShieldCheck className="w-5 h-5" />
+                      <HugeiconsIcon icon={ShieldCheck} className="w-5 h-5" />
                     ) : (
-                      <Shield className="w-5 h-5" />
+                      <HugeiconsIcon icon={Shield} className="w-5 h-5" />
                     )}
                   </div>
 
@@ -261,7 +262,7 @@ const RulesClient = ({ initialRules }: RulesClientProps) => {
                         size="icon"
                         className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-white/5"
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <HugeiconsIcon icon={MoreVertical} className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -272,13 +273,13 @@ const RulesClient = ({ initialRules }: RulesClientProps) => {
                         onClick={() => handleEdit(rule)}
                         className="focus:bg-white/5 focus:text-white cursor-pointer text-xs"
                       >
-                        <Edit className="mr-2 h-3.5 w-3.5" /> Modifier
+                        <HugeiconsIcon icon={Edit} className="mr-2 h-3.5 w-3.5" /> Modifier
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDelete(rule)}
                         className="focus:bg-rose-500/10 focus:text-rose-400 text-rose-500 cursor-pointer text-xs"
                       >
-                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Supprimer
+                        <HugeiconsIcon icon={Trash2} className="mr-2 h-3.5 w-3.5" /> Supprimer
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -314,6 +314,15 @@ export interface AIExplanationRequest {
     trustScore?: number;
     tier?: CustomerTier;
   };
+  cardTesting?: {
+    suspicionScore: number;
+    uniqueCards: number;
+    totalAttempts: number;
+    failedAttempts: number;
+    failureRate: number;
+    isCardTesting: boolean;
+    reasons?: string[];
+  };
 }
 
 /**
@@ -412,5 +421,82 @@ export interface DecisionDisplay {
 export interface TierDisplay {
   label: string;
   color: string;
+  description: string;
+}
+
+// ==========================================
+// COMPOSITE RISK SCORE TYPES
+// ==========================================
+
+/**
+ * Weight configuration for composite score calculation
+ */
+export interface CompositeScoreWeights {
+  riskScore: number; // Weight for general risk score (0-1)
+  cardTestingScore: number; // Weight for card testing score (0-1)
+}
+
+/**
+ * Breakdown of the composite score
+ */
+export interface CompositeScoreBreakdown {
+  // Individual scores
+  riskScore: number; // 0-100, general fraud risk score
+  cardTestingScore: number; // 0-100, card testing suspicion score
+
+  // Weighted contributions
+  riskScoreContribution: number;
+  cardTestingContribution: number;
+
+  // Metadata
+  hasCardTestingData: boolean;
+  cardTestingTrackerId?: string;
+}
+
+/**
+ * Complete composite risk score result
+ */
+export interface CompositeRiskScore {
+  // Final composite score (0-100)
+  totalScore: number;
+
+  // Risk level derived from total score
+  riskLevel: CompositeRiskLevel;
+
+  // Detailed breakdown
+  breakdown: CompositeScoreBreakdown;
+
+  // Decision based on composite score
+  decision: FraudDecision;
+  confidence: FraudConfidence;
+
+  // Summary for UI
+  summary: {
+    label: string;
+    description: string;
+    primaryRiskSource: "general" | "card_testing" | "both" | "none";
+  };
+}
+
+/**
+ * Risk levels for composite score
+ */
+export type CompositeRiskLevel =
+  | "minimal" // 0-20
+  | "low" // 21-35
+  | "moderate" // 36-50
+  | "elevated" // 51-65
+  | "high" // 66-80
+  | "critical"; // 81-100
+
+/**
+ * Display info for composite risk level
+ */
+export interface CompositeRiskDisplay {
+  level: CompositeRiskLevel;
+  label: string;
+  color: string;
+  bgColor: string;
+  borderColor: string;
   description: string;
 }

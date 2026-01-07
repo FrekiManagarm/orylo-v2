@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { motion } from "framer-motion";
-import { Mail, MapPin, MessageSquare } from "lucide-react";
+import { Mail, MapPin, MessageSquare } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 
 export function ContactContent() {
@@ -68,7 +69,7 @@ export function ContactContent() {
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-                      <Mail className="w-5 h-5" />
+                      <HugeiconsIcon icon={Mail} className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="font-medium text-white mb-1">Email</div>
@@ -80,7 +81,7 @@ export function ContactContent() {
 
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 shrink-0">
-                      <MapPin className="w-5 h-5" />
+                      <HugeiconsIcon icon={MapPin} className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="font-medium text-white mb-1">Office</div>
@@ -93,7 +94,7 @@ export function ContactContent() {
 
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-pink-500/10 flex items-center justify-center text-pink-400 shrink-0">
-                      <MessageSquare className="w-5 h-5" />
+                      <HugeiconsIcon icon={MessageSquare} className="w-5 h-5" />
                     </div>
                     <div>
                       <div className="font-medium text-white mb-1">Support</div>

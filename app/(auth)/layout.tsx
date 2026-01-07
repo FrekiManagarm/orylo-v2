@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from '@hugeicons/react';
 
 export default function AuthLayout({
   children,
@@ -45,7 +46,7 @@ export default function AuthLayout({
             className="text-zinc-400 hover:text-white hover:bg-white/5"
           >
             <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={ArrowLeft} className="size-4" />
               Retour à l'accueil
             </Link>
           </Button>

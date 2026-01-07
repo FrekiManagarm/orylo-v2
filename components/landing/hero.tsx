@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
-import { ArrowRight, CheckCircle2, CreditCard, Eye, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle, CreditCard, Eye, Zap } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -98,7 +99,7 @@ export default function Hero() {
             >
               <Link href="#pricing">
                 Start for free
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <HugeiconsIcon icon={ArrowRight} className="ml-2 h-5 w-5" />
               </Link>
             </Button>
 
@@ -120,15 +121,15 @@ export default function Hero() {
             className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-sm mb-8"
           >
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/10 border border-rose-500/20">
-              <CreditCard className="h-4 w-4 text-rose-400" />
+              <HugeiconsIcon icon={CreditCard} className="h-4 w-4 text-rose-400" />
               <span className="text-rose-300">Card Testing Detection</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20">
-              <Eye className="h-4 w-4 text-purple-400" />
+              <HugeiconsIcon icon={Eye} className="h-4 w-4 text-purple-400" />
               <span className="text-purple-300">Visual Explanations</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-              <Zap className="h-4 w-4 text-emerald-400" />
+              <HugeiconsIcon icon={Zap} className="h-4 w-4 text-emerald-400" />
               <span className="text-emerald-300">Auto-Actions</span>
             </div>
           </motion.div>
@@ -140,15 +141,15 @@ export default function Hero() {
             className="flex flex-wrap items-center justify-center gap-6 md:gap-8 text-sm text-zinc-500"
           >
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-indigo-500" />
+              <HugeiconsIcon icon={CheckCircle} className="h-4 w-4 text-indigo-500" />
               <span>5-minute Stripe OAuth setup</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-indigo-500" />
+              <HugeiconsIcon icon={CheckCircle} className="h-4 w-4 text-indigo-500" />
               <span>Clear explanations for every block</span>
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-indigo-500" />
+              <HugeiconsIcon icon={CheckCircle} className="h-4 w-4 text-indigo-500" />
               <span>Start FREE • Scale from €99/month</span>
             </div>
           </motion.div>

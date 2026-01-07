@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowUpRight, ExternalLink } from "lucide-react";
+import { ArrowUpRight, ExternalLink } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Card,
   CardContent,
@@ -31,72 +32,70 @@ const RecentTransactionsTable = async ({
     }).format(amount / 100);
   };
 
-  const formatTimeAgo = (date: Date | null) => {
-    if (!date) return "N/A";
-
-    const now = new Date();
-    const diff = now.getTime() - new Date(date).getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-    if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-    if (minutes > 0) return `${minutes} min ago`;
-    return "Just now";
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score < 30)
-      return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-    if (score < 70)
-      return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-    return "bg-rose-500/10 text-rose-500 border-rose-500/20";
-  };
-
-  const getStatusBadge = (action: string, blocked: boolean) => {
-    if (blocked) {
-      return (
-        <Badge
-          variant="destructive"
-          className="bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20"
-        >
-          Blocked
-        </Badge>
-      );
+  // Get composite score color based on risk level
+  const getCompositeScoreColor = (level: string | null | undefined) => {
+    switch (level) {
+      case "minimal":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "low":
+        return "bg-green-500/10 text-green-400 border-green-500/20";
+      case "moderate":
+        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+      case "elevated":
+        return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+      case "high":
+        return "bg-red-500/10 text-red-400 border-red-500/20";
+      case "critical":
+        return "bg-rose-500/10 text-rose-400 border-rose-500/20";
+      default:
+        return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
     }
+  };
 
+  const getCompositeRiskLabel = (level: string | null | undefined) => {
+    switch (level) {
+      case "minimal": return "Min";
+      case "low": return "Faible";
+      case "moderate": return "Mod";
+      case "elevated": return "Élevé";
+      case "high": return "Très élevé";
+      case "critical": return "Critique";
+      default: return "—";
+    }
+  };
+
+  const getActionBadge = (action: string) => {
     switch (action) {
       case "ALLOW":
         return (
           <Badge
             variant="secondary"
-            className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+            className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
           >
             Accepted
-          </Badge>
-        );
-      case "REVIEW":
-        return (
-          <Badge
-            variant="outline"
-            className="bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20"
-          >
-            Review
           </Badge>
         );
       case "BLOCK":
         return (
           <Badge
             variant="destructive"
-            className="bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20"
+            className="bg-rose-500/10 text-rose-400 border-rose-500/20"
           >
             Blocked
           </Badge>
         );
+      case "REVIEW":
+        return (
+          <Badge
+            variant="outline"
+            className="bg-orange-500/10 text-orange-400 border-orange-500/20"
+          >
+            Review
+          </Badge>
+        );
       default:
         return (
-          <Badge variant="outline" className="border-white/10 text-zinc-400">
+          <Badge variant="outline" className="text-zinc-400">
             {action}
           </Badge>
         );
@@ -118,7 +117,7 @@ const RecentTransactionsTable = async ({
             size="sm"
             className="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 gap-2"
           >
-            View Full Report <ArrowUpRight className="h-4 w-4" />
+            View Full Report <HugeiconsIcon icon={ArrowUpRight} className="h-4 w-4" />
           </Button>
         </Link>
       </CardHeader>
@@ -129,20 +128,24 @@ const RecentTransactionsTable = async ({
               <TableHead className="text-zinc-500 font-medium pl-6">
                 Transaction ID
               </TableHead>
-              <TableHead className="text-zinc-500 font-medium">User</TableHead>
               <TableHead className="text-zinc-500 font-medium">
                 Amount
               </TableHead>
               <TableHead className="text-zinc-500 font-medium">
-                Risk Score
+                Score Total
               </TableHead>
               <TableHead className="text-zinc-500 font-medium">
-                Status
+                Action
+              </TableHead>
+              <TableHead className="text-zinc-500 font-medium">
+                Reasoning
+              </TableHead>
+              <TableHead className="text-right text-zinc-500 font-medium">
+                Date
               </TableHead>
               <TableHead className="text-right text-zinc-500 font-medium pr-6">
-                Time
+                Actions
               </TableHead>
-              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -152,7 +155,7 @@ const RecentTransactionsTable = async ({
                   colSpan={7}
                   className="text-center text-zinc-400 py-8"
                 >
-                  No transactions yet
+                  Aucune transaction trouvée
                 </TableCell>
               </TableRow>
             ) : (
@@ -164,37 +167,53 @@ const RecentTransactionsTable = async ({
                   <TableCell className="font-mono text-xs text-zinc-400 group-hover:text-white transition-colors pl-6">
                     {analysis.paymentIntentId}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">
-                        {analysis.customerEmail || "N/A"}
-                      </span>
-                    </div>
-                  </TableCell>
                   <TableCell className="text-zinc-300 font-medium">
                     {formatCurrency(analysis.amount, analysis.currency)}
                   </TableCell>
                   <TableCell>
-                    <div
-                      className={`inline-flex items-center justify-center rounded-md px-2 py-1 text-xs font-bold border ${getScoreColor(analysis.riskScore)}`}
-                    >
-                      {analysis.riskScore}
+                    <div className="flex flex-col gap-1">
+                      {/* Composite Score Badge */}
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold border ${getCompositeScoreColor(analysis.compositeRiskLevel)}`}
+                          title={`Score composite: ${analysis.compositeScore ?? analysis.riskScore}/100`}
+                        >
+                          {analysis.compositeScore ?? analysis.riskScore}
+                        </div>
+                        <span className={`text-[10px] font-medium ${getCompositeScoreColor(analysis.compositeRiskLevel).split(' ')[1]}`}>
+                          {getCompositeRiskLabel(analysis.compositeRiskLevel)}
+                        </span>
+                      </div>
+                      {/* Breakdown: Risk / Card Testing */}
+                      <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+                        <span title="Score de risque général">R:{analysis.riskScore}</span>
+                        <span className="text-zinc-600">·</span>
+                        <span title="Score card testing">CT:{analysis.cardTestingSuspicionScore ?? 0}</span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    {getStatusBadge(analysis.decision, analysis.blocked)}
+                    {getActionBadge(analysis.decision)}
                   </TableCell>
-                  <TableCell className="text-right text-zinc-500 text-sm pr-6">
-                    {formatTimeAgo(analysis.createdAt)}
+                  <TableCell
+                    className="text-zinc-400 text-sm max-w-[200px] truncate"
+                    title={analysis.aiExplanation ?? ""}
+                  >
+                    {analysis.aiExplanation || "—"}
                   </TableCell>
-                  <TableCell>
-                    <Link href={`/dashboard/transactions`}>
+                  <TableCell className="text-right text-zinc-500 text-sm">
+                    {analysis.createdAt
+                      ? new Date(analysis.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <Link href="/dashboard/transactions">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-zinc-500 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <HugeiconsIcon icon={ExternalLink} className="h-4 w-4" />
                         <span className="sr-only">View details</span>
                       </Button>
                     </Link>

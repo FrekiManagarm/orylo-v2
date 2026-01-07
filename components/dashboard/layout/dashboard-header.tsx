@@ -4,7 +4,8 @@ import { useMemo, Fragment } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PanelLeft } from "lucide-react";
+import { PanelLeft } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { breadcrumbProList } from "@/lib/config/breadcrumb-list";
 import {
@@ -69,7 +70,7 @@ export function DashboardHeader() {
           className="h-10 w-10 rounded-xl bg-card border-border transition-all duration-300 hover:shadow-md p-0 m-0"
           onClick={toggleSidebar}
         >
-          <PanelLeft size={24} />
+          <HugeiconsIcon icon={PanelLeft} className="h-4 w-4" />
         </Button>
         <Separator orientation="vertical" className="mx-2 h-4 bg-border" />
         <Breadcrumb>

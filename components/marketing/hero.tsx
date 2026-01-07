@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, Shield, Eye, Zap, Search } from "lucide-react";
+import { Check, Shield, Eye, Zap, Search } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 
 // Simulated transactions for the live feed
@@ -31,7 +32,7 @@ function LiveFeed() {
         {/* Search bar */}
         <div className="border-b border-white/10 p-4">
           <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-zinc-800/50 px-3 py-2">
-            <Search className="h-4 w-4 text-zinc-500" />
+            <HugeiconsIcon icon={Search} className="h-4 w-4 text-zinc-500" />
             <span className="text-sm text-zinc-500">Search transactions...</span>
           </div>
         </div>
@@ -41,9 +42,8 @@ function LiveFeed() {
           <h3 className="text-sm font-semibold text-white">Live Feed</h3>
           <div className="flex items-center gap-2">
             <span
-              className={`h-2 w-2 rounded-full transition-all ${
-                isBlinking ? "bg-emerald-300 shadow-lg shadow-emerald-500/50" : "bg-emerald-500"
-              }`}
+              className={`h-2 w-2 rounded-full transition-all ${isBlinking ? "bg-emerald-300 shadow-lg shadow-emerald-500/50" : "bg-emerald-500"
+                }`}
             />
             <span className="text-xs text-zinc-400">Monitoring</span>
           </div>
@@ -139,15 +139,15 @@ export function Hero() {
             {/* Feature badges */}
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <Shield className="h-4 w-4 text-indigo-400" />
+                <HugeiconsIcon icon={Shield} className="h-4 w-4 text-indigo-400" />
                 <span>Card Testing Detection</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <Eye className="h-4 w-4 text-indigo-400" />
+                <HugeiconsIcon icon={Eye} className="h-4 w-4 text-indigo-400" />
                 <span>Visual Explanations</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-zinc-400">
-                <Zap className="h-4 w-4 text-indigo-400" />
+                <HugeiconsIcon icon={Zap} className="h-4 w-4 text-indigo-400" />
                 <span>Auto-Actions</span>
               </div>
             </div>
@@ -162,15 +162,15 @@ export function Hero() {
         {/* Bottom trust bar */}
         <div className="mt-16 flex flex-wrap items-center justify-center gap-6 border-t border-white/10 pt-8 text-sm text-zinc-500 md:gap-10">
           <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-emerald-500" />
+            <HugeiconsIcon icon={Check} className="h-4 w-4 text-emerald-500" />
             <span>5-minute Stripe OAuth setup</span>
           </div>
           <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-emerald-500" />
+            <HugeiconsIcon icon={Check} className="h-4 w-4 text-emerald-500" />
             <span>Clear explanations for every block</span>
           </div>
           <div className="flex items-center gap-2">
-            <Check className="h-4 w-4 text-emerald-500" />
+            <HugeiconsIcon icon={Check} className="h-4 w-4 text-emerald-500" />
             <span>Start FREE • Scale from €99/month</span>
           </div>
         </div>

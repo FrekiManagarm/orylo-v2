@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Shield } from "lucide-react";
+import { Shield } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const footerLinks = {
   product: {
@@ -38,8 +39,8 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link href="/" className="inline-flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-                <Shield className="h-4 w-4 text-white" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-purple-600">
+                <HugeiconsIcon icon={Shield} className="h-4 w-4 text-white" />
               </div>
               <span className="text-lg font-bold text-white">Orylo</span>
             </Link>

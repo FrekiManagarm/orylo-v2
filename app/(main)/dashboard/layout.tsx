@@ -54,7 +54,7 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
         />
         <SidebarInset>
           <DashboardHeader />
-          <div className="w-full overflow-y-auto p-4 mb-4">{children}</div>
+          <div className="w-full overflow-y-auto mb-4">{children}</div>
         </SidebarInset>
       </div>
       <Toaster />

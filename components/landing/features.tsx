@@ -10,10 +10,11 @@ import {
   CreditCard,
   ShieldCheck,
   Eye,
-  Ban,
+  BlockedIcon,
   RefreshCw,
   Target,
-} from "lucide-react";
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const features = [
   {
@@ -98,7 +99,7 @@ export default function Features() {
             viewport={{ once: true }}
             className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full border border-indigo-500/20 bg-indigo-500/10"
           >
-            <Sparkles className="w-4 h-4 text-indigo-400" />
+            <HugeiconsIcon icon={Sparkles} className="w-4 h-4 text-indigo-400" />
             <span className="text-sm font-medium text-indigo-400">
               Simple & Effective
             </span>
@@ -125,7 +126,7 @@ export default function Features() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-xl text-zinc-400 max-w-2xl mx-auto"
           >
-            Rule-based detection with visual explanations. 
+            Rule-based detection with visual explanations.
             See exactly why each transaction was blocked.
           </motion.p>
         </div>
@@ -150,7 +151,7 @@ export default function Features() {
                   <div
                     className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br ${features[0].gradient} mb-6 shadow-lg shadow-rose-500/20`}
                   >
-                    <CreditCard className="w-7 h-7 text-white" />
+                    <HugeiconsIcon icon={CreditCard} className="w-7 h-7 text-white" />
                   </div>
 
                   <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
@@ -205,7 +206,7 @@ export default function Features() {
                   <div
                     className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br ${features[1].gradient} mb-6 shadow-lg shadow-violet-500/20`}
                   >
-                    <Zap className="w-7 h-7 text-white" />
+                    <HugeiconsIcon icon={Zap} className="w-7 h-7 text-white" />
                   </div>
 
                   <h3 className="text-xl font-bold text-white mb-2">
@@ -217,7 +218,7 @@ export default function Features() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-6">
-                  <Clock className="w-5 h-5 text-violet-400" />
+                  <HugeiconsIcon icon={Clock} className="w-5 h-5 text-violet-400" />
                   <span
                     className={`text-3xl font-black bg-linear-to-r ${features[1].gradient} bg-clip-text text-transparent`}
                   >
@@ -249,7 +250,7 @@ export default function Features() {
                   <div
                     className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br ${features[2].gradient} mb-6 shadow-lg shadow-purple-500/20`}
                   >
-                    <Eye className="w-7 h-7 text-white" />
+                    <HugeiconsIcon icon={Eye} className="w-7 h-7 text-white" />
                   </div>
 
                   <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
@@ -303,7 +304,7 @@ export default function Features() {
                   <div
                     className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br ${features[3].gradient} mb-6 shadow-lg shadow-emerald-500/20`}
                   >
-                    <RefreshCw className="w-7 h-7 text-white" />
+                    <HugeiconsIcon icon={RefreshCw} className="w-7 h-7 text-white" />
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-3">
@@ -345,7 +346,7 @@ export default function Features() {
                   <div
                     className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to-br ${features[4].gradient} mb-6 shadow-lg shadow-indigo-500/20`}
                   >
-                    <Target className="w-7 h-7 text-white" />
+                    <HugeiconsIcon icon={Target} className="w-7 h-7 text-white" />
                   </div>
 
                   <h3 className="text-xl font-bold text-white mb-2">
@@ -384,7 +385,7 @@ export default function Features() {
             className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-black font-semibold hover:bg-zinc-200 transition-colors group"
           >
             View pricing
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <HugeiconsIcon icon={ArrowRight} className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </a>
         </motion.div>
       </div>

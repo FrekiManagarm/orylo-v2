@@ -1,6 +1,7 @@
 "use client";
 
-import { Building2, Check, Loader2, User } from "lucide-react";
+import { Building2, Check, LoaderCircle, User } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import React, { useEffect } from "react";
 
 import {
@@ -79,11 +80,11 @@ export function AccountSwitchDialog({
             className={cn("rounded-full p-2 border", iconBgColor, borderColor)}
           >
             {isLoading ? (
-              <Loader2 className={cn("h-6 w-6 animate-spin", iconColor)} />
+              <HugeiconsIcon icon={LoaderCircle} className={cn("h-6 w-6 animate-spin", iconColor)} />
             ) : isProfessional ? (
-              <Building2 className={cn("h-6 w-6", iconColor)} />
+              <HugeiconsIcon icon={Building2} className={cn("h-6 w-6", iconColor)} />
             ) : (
-              <User className={cn("h-6 w-6", iconColor)} />
+              <HugeiconsIcon icon={User} className={cn("h-6 w-6", iconColor)} />
             )}
           </div>
           <div className="flex-1">
@@ -105,7 +106,7 @@ export function AccountSwitchDialog({
                 isProfessional ? "bg-primary" : "bg-secondary",
               )}
             >
-              <Check className="h-4 w-4 text-white" />
+              <HugeiconsIcon icon={Check} className="h-4 w-4 text-white" />
             </div>
           )}
         </div>

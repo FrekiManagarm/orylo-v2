@@ -28,7 +28,7 @@ const CardTestingPage = async () => {
 
 function CardTestingLoading() {
   return (
-    <div className="min-h-screen space-y-8">
+    <div className="min-h-screen space-y-8 p-4">
       <div className="flex flex-col gap-4">
         <div className="h-8 w-64 bg-zinc-800 rounded animate-pulse" />
         <div className="h-4 w-96 bg-zinc-800/50 rounded animate-pulse" />

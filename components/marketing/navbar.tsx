@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Shield, Menu, X } from "lucide-react";
+import { Shield, Menu, X } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 
 export function Navbar() {
@@ -13,8 +14,8 @@ export function Navbar() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-            <Shield className="h-4 w-4 text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-purple-600">
+            <HugeiconsIcon icon={Shield} className="h-4 w-4 text-white" />
           </div>
           <span className="text-lg font-bold text-white">Orylo</span>
         </Link>
@@ -74,9 +75,9 @@ export function Navbar() {
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? (
-            <X className="h-6 w-6 text-white" />
+            <HugeiconsIcon icon={X} className="h-6 w-6 text-white" />
           ) : (
-            <Menu className="h-6 w-6 text-white" />
+            <HugeiconsIcon icon={Menu} className="h-6 w-6 text-white" />
           )}
         </button>
       </nav>

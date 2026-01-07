@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, CheckCircle, CreditCard, Activity, Search, Ban, RefreshCw } from "lucide-react";
+import { AlertTriangle, CheckCircle, CreditCard, Activity, Search, BlockedIcon, RefreshCw } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +43,7 @@ const scenarios: Scenario[] = [
         color: "text-rose-400"
       },
       {
-        icon: Ban,
+        icon: BlockedIcon,
         label: "Pattern detected",
         value: "Fail → Fail → Fail → Success",
         subValue: "Classic card testing",
@@ -191,7 +192,7 @@ function DashboardContent({ step, scenario, history }: { step: number, scenario:
         </div>
         <div className="h-4 w-px bg-white/10 mx-2" />
         <div className="flex items-center gap-2 text-xs text-zinc-400 bg-black/20 px-3 py-1.5 rounded-md border border-white/5 w-64">
-          <Search className="w-3 h-3" />
+          <HugeiconsIcon icon={Search} className="w-3 h-3" />
           <span>Search transactions...</span>
         </div>
       </div>
@@ -233,8 +234,8 @@ function DashboardContent({ step, scenario, history }: { step: number, scenario:
                           : "bg-zinc-800 text-zinc-400"
                       )}>
                         {step >= 2
-                          ? (scenario.status === "block" ? <AlertTriangle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />)
-                          : <Activity className="w-5 h-5 animate-pulse" />
+                          ? (scenario.status === "block" ? <HugeiconsIcon icon={AlertTriangle} className="w-5 h-5" /> : <HugeiconsIcon icon={CheckCircle} className="w-5 h-5" />)
+                          : <HugeiconsIcon icon={Activity} className="w-5 h-5 animate-pulse" />
                         }
                       </div>
                       <div>
@@ -279,7 +280,7 @@ function DashboardContent({ step, scenario, history }: { step: number, scenario:
 
                     {step === 1 && (
                       <div className="text-xs text-indigo-400 font-medium animate-pulse flex items-center gap-1.5">
-                        <Activity className="w-3 h-3" />
+                        <HugeiconsIcon icon={Activity} className="w-3 h-3" />
                         Analyzing...
                       </div>
                     )}
@@ -353,7 +354,7 @@ function DashboardContent({ step, scenario, history }: { step: number, scenario:
                         "w-8 h-8 rounded-full flex items-center justify-center",
                         tx.status === "block" ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
                       )}>
-                        {tx.status === "block" ? <AlertTriangle className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                        {tx.status === "block" ? <HugeiconsIcon icon={AlertTriangle} className="w-4 h-4" /> : <HugeiconsIcon icon={CheckCircle} className="w-4 h-4" />}
                       </div>
                       <div>
                         <div className="text-sm font-medium text-zinc-300">{tx.email}</div>

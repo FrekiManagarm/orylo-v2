@@ -19,14 +19,16 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-} from "lucide-react";
+  Download,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { TransactionDetailsDrawer } from "./transaction-details-drawer";
 import { useQueryStates } from "nuqs";
 import { transactionsParsers } from "../searchParams";
-import { FraudDetection } from "@/lib/db/schemas";
+import type { FraudDetectionWithCardTesting } from "@/lib/actions/fraud-analyses";
 
 type TransactionsClientProps = {
-  initialAnalyses: FraudDetection[];
+  initialAnalyses: FraudDetectionWithCardTesting[];
   initialTotalCount: number;
   initialPage: number;
   totalPages: number;
@@ -77,12 +79,36 @@ const TransactionsClient = ({
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score < 30)
-      return "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-    if (score < 70)
-      return "bg-orange-500/10 text-orange-500 border-orange-500/20";
-    return "bg-rose-500/10 text-rose-500 border-rose-500/20";
+  // Get composite score color based on risk level
+  const getCompositeScoreColor = (level: string | null | undefined) => {
+    switch (level) {
+      case "minimal":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "low":
+        return "bg-green-500/10 text-green-400 border-green-500/20";
+      case "moderate":
+        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+      case "elevated":
+        return "bg-orange-500/10 text-orange-400 border-orange-500/20";
+      case "high":
+        return "bg-red-500/10 text-red-400 border-red-500/20";
+      case "critical":
+        return "bg-rose-500/10 text-rose-400 border-rose-500/20";
+      default:
+        return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+    }
+  };
+
+  const getCompositeRiskLabel = (level: string | null | undefined) => {
+    switch (level) {
+      case "minimal": return "Min";
+      case "low": return "Faible";
+      case "moderate": return "Mod";
+      case "elevated": return "Élevé";
+      case "high": return "Très élevé";
+      case "critical": return "Critique";
+      default: return "—";
+    }
   };
 
   const getActionBadge = (action: string) => {
@@ -131,7 +157,7 @@ const TransactionsClient = ({
   };
 
   return (
-    <div className="bg-black space-y-8 relative overflow-hidden px-1">
+    <div className="bg-black space-y-8 relative overflow-hidden p-4">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-indigo-900/20 via-zinc-900/0 to-zinc-900/0 pointer-events-none" />
 
@@ -150,7 +176,7 @@ const TransactionsClient = ({
           {/* Top Bar: Search + Export */}
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-lg">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <HugeiconsIcon icon={Search} className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
               <Input
                 placeholder="Rechercher par ID, email, ou IP..."
                 className="pl-10 bg-zinc-900/50 border-white/10 text-white placeholder:text-zinc-500 focus-visible:ring-indigo-500 h-10"
@@ -164,7 +190,7 @@ const TransactionsClient = ({
                   onClick={resetFilters}
                   className="text-xs text-zinc-400 hover:text-white hover:bg-white/5 h-10 px-4"
                 >
-                  <X className="h-3.5 w-3.5 mr-2" />
+                  <HugeiconsIcon icon={X} className="h-3.5 w-3.5 mr-2" />
                   Réinitialiser
                 </Button>
               )}
@@ -173,7 +199,7 @@ const TransactionsClient = ({
                 size="sm"
                 className="bg-zinc-900/50 border-white/10 text-zinc-300 hover:text-white hover:bg-white/5 h-10 px-4"
               >
-                <DownloadIcon className="h-3.5 w-3.5 mr-2" />
+                <HugeiconsIcon icon={Download} className="h-3.5 w-3.5 mr-2" />
                 Exporter
               </Button>
             </div>
@@ -278,15 +304,12 @@ const TransactionsClient = ({
                     Transaction ID
                   </TableHead>
                   <TableHead className="text-zinc-500 font-medium">
-                    User
-                  </TableHead>
-                  <TableHead className="text-zinc-500 font-medium">
                     <div className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors">
-                      Amount <ArrowUpDown className="h-3 w-3" />
+                      Amount <HugeiconsIcon icon={ArrowUpDown} className="h-3 w-3" />
                     </div>
                   </TableHead>
                   <TableHead className="text-zinc-500 font-medium">
-                    Risk Score
+                    Score Total
                   </TableHead>
                   <TableHead className="text-zinc-500 font-medium">
                     Action
@@ -306,7 +329,7 @@ const TransactionsClient = ({
                 {initialAnalyses.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={7}
                       className="text-center text-zinc-500 py-10"
                     >
                       Aucune transaction trouvée
@@ -321,24 +344,29 @@ const TransactionsClient = ({
                       <TableCell className="font-mono text-xs text-zinc-400 group-hover:text-white pl-6">
                         {analysis.paymentIntentId}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">
-                            {analysis.customerEmail}
-                          </span>
-                          <span className="text-xs text-zinc-500">
-                            {analysis.detectionContext?.ipAddress}
-                          </span>
-                        </div>
-                      </TableCell>
                       <TableCell className="text-zinc-300 font-medium">
                         {formatCurrency(analysis.amount, analysis.currency)}
                       </TableCell>
                       <TableCell>
-                        <div
-                          className={`inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold border ${getScoreColor(analysis.riskScore)}`}
-                        >
-                          {analysis.riskScore}
+                        <div className="flex flex-col gap-1">
+                          {/* Composite Score Badge */}
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold border ${getCompositeScoreColor(analysis.compositeRiskLevel)}`}
+                              title={`Score composite: ${analysis.compositeScore ?? analysis.riskScore}/100`}
+                            >
+                              {analysis.compositeScore ?? analysis.riskScore}
+                            </div>
+                            <span className={`text-[10px] font-medium ${getCompositeScoreColor(analysis.compositeRiskLevel).split(' ')[1]}`}>
+                              {getCompositeRiskLabel(analysis.compositeRiskLevel)}
+                            </span>
+                          </div>
+                          {/* Breakdown: Risk / Card Testing */}
+                          <div className="flex items-center gap-1 text-[10px] text-zinc-500">
+                            <span title="Score de risque général">R:{analysis.riskScore}</span>
+                            <span className="text-zinc-600">·</span>
+                            <span title="Score card testing">CT:{analysis.cardTestingSuspicionScore ?? 0}</span>
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>{getActionBadge(analysis.decision)}</TableCell>
@@ -362,6 +390,9 @@ const TransactionsClient = ({
                             amount: analysis.amount,
                             currency: analysis.currency,
                             riskScore: analysis.riskScore,
+                            compositeScore: analysis.compositeScore,
+                            compositeRiskLevel: analysis.compositeRiskLevel,
+                            cardTestingSuspicionScore: analysis.cardTestingSuspicionScore,
                             decision: analysis.decision,
                             confidence: analysis.confidence,
                             aiExplanation: analysis.aiExplanation,
@@ -373,6 +404,7 @@ const TransactionsClient = ({
                             actualOutcome: analysis.actualOutcome,
                             factors: analysis.factors,
                           }}
+                          cardTestingTracker={analysis.cardTestingTracker}
                         />
                       </TableCell>
                     </TableRow>
@@ -400,7 +432,7 @@ const TransactionsClient = ({
                 disabled={initialPage === 1}
                 className="bg-zinc-900/50 border-white/10 text-zinc-300 hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
+                <HugeiconsIcon icon={ChevronLeft} className="h-4 w-4 mr-1" />
                 Précédent
               </Button>
               <div className="flex items-center gap-1">
@@ -441,7 +473,7 @@ const TransactionsClient = ({
                 className="bg-zinc-900/50 border-white/10 text-zinc-300 hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Suivant
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <HugeiconsIcon icon={ChevronRight} className="h-4 w-4 ml-1" />
               </Button>
             </div>
           </div>

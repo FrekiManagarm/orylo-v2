@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel, FieldDescription, FieldError, FieldContent } from "../ui/field";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { LoaderCircle, ArrowLeft } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const forgotPasswordSchema = z.object({
   email: z.email({
@@ -87,7 +88,7 @@ export function ForgotPasswordForm() {
             className="w-full text-zinc-300 hover:text-white hover:bg-white/10"
           >
             <Link href="/sign-in">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={ArrowLeft} className="mr-2 h-4 w-4" />
               Retour à la connexion
             </Link>
           </Button>
@@ -145,7 +146,7 @@ export function ForgotPasswordForm() {
               className="w-full bg-white text-black hover:bg-zinc-200"
               disabled={isLoading}
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />}
               Envoyer le lien
             </Button>
           </FieldGroup>
@@ -158,7 +159,7 @@ export function ForgotPasswordForm() {
           className="px-0 font-normal text-zinc-400 hover:text-white"
         >
           <Link href="/sign-in">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <HugeiconsIcon icon={ArrowLeft} className="mr-2 h-4 w-4" />
             Retour à la connexion
           </Link>
         </Button>

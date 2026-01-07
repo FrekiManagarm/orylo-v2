@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Eye, Zap, Settings, Clock } from "lucide-react";
+import { Shield, Eye, Zap, Settings, Clock } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 
 export function Features() {
@@ -35,7 +36,7 @@ export function Features() {
           <Card className="border-white/10 bg-zinc-900/50 backdrop-blur-xl">
             <CardContent className="p-6">
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
-                <Shield className="h-6 w-6 text-red-400" />
+                <HugeiconsIcon icon={Shield} className="h-6 w-6 text-red-400" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-white">
                 Card Testing Detection
@@ -77,7 +78,7 @@ export function Features() {
           <Card className="border-white/10 bg-zinc-900/50 backdrop-blur-xl">
             <CardContent className="p-6">
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10">
-                <Clock className="h-6 w-6 text-indigo-400" />
+                <HugeiconsIcon icon={Clock} className="h-6 w-6 text-indigo-400" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-white">
                 Live in 5 minutes
@@ -99,7 +100,7 @@ export function Features() {
           <Card className="border-white/10 bg-zinc-900/50 backdrop-blur-xl">
             <CardContent className="p-6">
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/10">
-                <Eye className="h-6 w-6 text-purple-400" />
+                <HugeiconsIcon icon={Eye} className="h-6 w-6 text-purple-400" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-white">
                 Visual Explanations
@@ -128,7 +129,7 @@ export function Features() {
           <Card className="border-white/10 bg-zinc-900/50 backdrop-blur-xl">
             <CardContent className="p-6">
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-500/10">
-                <Zap className="h-6 w-6 text-yellow-400" />
+                <HugeiconsIcon icon={Zap} className="h-6 w-6 text-yellow-400" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-white">
                 Automatic Actions
@@ -164,7 +165,7 @@ export function Features() {
           <Card className="border-white/10 bg-zinc-900/50 backdrop-blur-xl">
             <CardContent className="p-6">
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
-                <Settings className="h-6 w-6 text-emerald-400" />
+                <HugeiconsIcon icon={Settings} className="h-6 w-6 text-emerald-400" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-white">
                 Custom Rules

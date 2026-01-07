@@ -33,7 +33,7 @@ const DashboardHome = async () => {
   ]);
 
   return (
-    <div className="bg-black space-y-4 relative overflow-hidden min-h-screen">
+    <div className="bg-black space-y-4 relative overflow-hidden min-h-screen p-4">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-indigo-900/20 via-zinc-900/0 to-zinc-900/0 pointer-events-none" />
       <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[128px] -translate-y-1/2 pointer-events-none" />

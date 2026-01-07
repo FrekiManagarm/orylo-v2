@@ -25,7 +25,8 @@ import {
   FieldError,
   FieldContent,
 } from "../ui/field";
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const signUpSchema = z.object({
   name: z.string().min(2, {
@@ -190,7 +191,7 @@ export function SignUpForm() {
               className="w-full bg-white text-black hover:bg-zinc-200"
               disabled={isLoading}
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <HugeiconsIcon icon={LoaderCircle} className="mr-2 h-4 w-4 animate-spin" />}
               S'inscrire
             </Button>
           </FieldGroup>

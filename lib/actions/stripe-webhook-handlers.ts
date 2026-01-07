@@ -20,8 +20,10 @@ import {
   generateCardFingerprint,
   buildTransactionContext,
   trackPaymentAttempt,
+  calculateVelocityMetrics,
   updateCustomerScore,
   getCustomerTrustScore,
+  calculateCompositeScore,
   type CustomerTier,
 } from "@/lib/fraud-detection";
 
@@ -106,17 +108,97 @@ export async function handlePaymentIntentCreated(
     }
   }
 
-  // STEP 2: Rules-based detection
+  // STEP 2: Track payment attempt and/or get existing card testing data
+  let cardTestingTrackerId: string | null = null;
+  let cardTestingResult: Awaited<ReturnType<typeof trackPaymentAttempt>> | null = null;
+
+  // Use sessionId to link multiple payment attempts together (critical for card testing detection)
+  const sessionId = context.sessionId || 
+    paymentIntent.metadata?.session_id || 
+    paymentIntent.metadata?.checkout_session_id;
+
+  if (context.cardFingerprint) {
+    // Track this payment attempt with card info
+    cardTestingResult = await trackPaymentAttempt(
+      organizationId,
+      sessionId || paymentIntent.id, // Use sessionId if available, otherwise paymentIntent.id
+      {
+        cardFingerprint: context.cardFingerprint,
+        cardLast4: context.cardLast4 || "****",
+        cardBrand: context.cardBrand || "unknown",
+        paymentIntentId: paymentIntent.id,
+        status: "succeeded", // Will be updated later if blocked
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        ipAddress: context.ipAddress,
+      },
+      sessionId
+    );
+    cardTestingTrackerId = cardTestingResult.trackerId;
+
+    // Update context velocity with fresh card testing data from tracking
+    context.velocity = {
+      ...context.velocity,
+      attemptsLastHour: cardTestingResult.metrics.totalAttempts,
+      attemptsLastDay: context.velocity?.attemptsLastDay || cardTestingResult.metrics.totalAttempts,
+      uniqueCardsUsed: cardTestingResult.metrics.uniqueCards,
+      failedAttempts: cardTestingResult.metrics.failedAttempts,
+      failureRate: cardTestingResult.metrics.failureRate,
+      suspicionScore: cardTestingResult.suspicionScore,
+    };
+
+    console.log(`[Fraud] Card testing tracked: score=${cardTestingResult.suspicionScore}, uniqueCards=${cardTestingResult.metrics.uniqueCards}, attempts=${cardTestingResult.metrics.totalAttempts}, reasons=${cardTestingResult.reasons.length}`);
+  } else if (sessionId) {
+    // No card fingerprint yet, but try to get existing card testing data for this session
+    const existingVelocity = await calculateVelocityMetrics(organizationId, sessionId, sessionId);
+    
+    if (existingVelocity.suspicionScore > 0) {
+      context.velocity = {
+        ...context.velocity,
+        attemptsLastHour: existingVelocity.attemptsLastHour,
+        attemptsLastDay: existingVelocity.attemptsLastDay,
+        uniqueCardsUsed: existingVelocity.uniqueCardsUsed,
+        failedAttempts: existingVelocity.failedAttempts,
+        suspicionScore: existingVelocity.suspicionScore,
+      };
+      console.log(`[Fraud] Using existing card testing data: score=${existingVelocity.suspicionScore}, uniqueCards=${existingVelocity.uniqueCardsUsed}`);
+    }
+  }
+
+  // STEP 3: Rules-based detection (now with updated card testing data)
   const detection = detectFraud(context);
 
   console.log(
     `[Fraud] Decision: ${detection.decision}, Score: ${detection.riskScore}`
   );
 
-  // STEP 3: Generate AI explanation
+  // STEP 4: Generate AI explanation (with fresh card testing data from tracking)
   let aiExplanation = "";
   let aiTokensUsed = 0;
   let aiLatencyMs = 0;
+
+  // Build card testing data from tracking result or existing velocity data
+  const cardTestingData = cardTestingResult
+    ? {
+      suspicionScore: cardTestingResult.suspicionScore,
+      uniqueCards: cardTestingResult.metrics.uniqueCards,
+      totalAttempts: cardTestingResult.metrics.totalAttempts,
+      failedAttempts: cardTestingResult.metrics.failedAttempts,
+      failureRate: cardTestingResult.metrics.failureRate,
+      isCardTesting: cardTestingResult.suspicionScore >= 50,
+      reasons: cardTestingResult.reasons.map(r => r.label),
+    }
+    : context.velocity?.suspicionScore && context.velocity.suspicionScore > 0
+      ? {
+        suspicionScore: context.velocity.suspicionScore,
+        uniqueCards: context.velocity.uniqueCardsUsed || 0,
+        totalAttempts: context.velocity.attemptsLastHour || 0,
+        failedAttempts: context.velocity.failedAttempts || 0,
+        failureRate: context.velocity.failureRate || 0,
+        isCardTesting: context.velocity.suspicionScore >= 50,
+        reasons: [],
+      }
+      : undefined;
 
   try {
     const result = await generateFraudExplanation({
@@ -139,6 +221,7 @@ export async function handlePaymentIntentCreated(
           tier: context.customer.tier,
         }
         : undefined,
+      cardTesting: cardTestingData,
     });
 
     aiExplanation = result.text;
@@ -151,7 +234,7 @@ export async function handlePaymentIntentCreated(
     aiExplanation = formatFallbackExplanation(detection);
   }
 
-  // STEP 4: Build detection context for database storage
+  // STEP 5: Build detection context for database storage
   const detectionContext: DetectionContext = {
     ipAddress: context.ipAddress,
     ipCountry: context.ipCountry,
@@ -198,29 +281,21 @@ export async function handlePaymentIntentCreated(
     },
   };
 
-  // STEP 5: Track payment attempt for card testing detection (before saving fraud detection)
-  let cardTestingTrackerId: string | null = null;
-  if (context.cardFingerprint) {
-    const trackingResult = await trackPaymentAttempt(
-      organizationId,
-      paymentIntent.id, // invoiceId
-      {
-        cardFingerprint: context.cardFingerprint,
-        cardLast4: context.cardLast4 || "****",
-        cardBrand: context.cardBrand || "unknown",
-        paymentIntentId: paymentIntent.id,
-        status: detection.decision === "BLOCK" ? "blocked" : "succeeded",
-        failureReason: detection.decision === "BLOCK" ? "fraud_blocked" : undefined,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        ipAddress: context.ipAddress,
-      },
-      context.sessionId
-    );
-    cardTestingTrackerId = trackingResult.trackerId;
-  }
+  // STEP 6: Calculate composite risk score
+  const cardTestingSuspicionScore = cardTestingResult?.suspicionScore || 
+    context.velocity?.suspicionScore || 0;
+  
+  const compositeScoreResult = calculateCompositeScore(
+    detection.riskScore,
+    cardTestingSuspicionScore,
+    cardTestingTrackerId || undefined
+  );
 
-  // STEP 6: Save to database with card testing tracker reference
+  console.log(
+    `[Fraud] Composite Score: ${compositeScoreResult.totalScore} (risk: ${detection.riskScore}, cardTesting: ${cardTestingSuspicionScore}, level: ${compositeScoreResult.riskLevel})`
+  );
+
+  // STEP 7: Save to database with card testing tracker reference and composite score
   const [savedAnalysis] = await db
     .insert(fraudDetections)
     .values({
@@ -233,6 +308,10 @@ export async function handlePaymentIntentCreated(
       riskScore: detection.riskScore,
       decision: detection.decision,
       confidence: detection.confidence,
+      // Composite score fields
+      compositeScore: compositeScoreResult.totalScore,
+      compositeRiskLevel: compositeScoreResult.riskLevel,
+      cardTestingSuspicionScore,
       factors: detection.factors,
       signals: {
         factors: detection.factors,
@@ -240,6 +319,7 @@ export async function handlePaymentIntentCreated(
         velocity: context.velocity,
         customerTier: context.customer?.tier,
         adjustments: detection.adjustments,
+        compositeScoreBreakdown: compositeScoreResult.breakdown,
       },
       agentsUsed: ["fraud-explanation-generator"],
       aiExplanation,
@@ -260,7 +340,7 @@ export async function handlePaymentIntentCreated(
     })
     .returning();
 
-  // STEP 7: Take action based on decision
+  // STEP 8: Take action based on decision
   if (detection.decision === "BLOCK") {
     console.log(`[Fraud] BLOCKING payment: ${paymentIntent.id}`);
 
@@ -403,11 +483,11 @@ export async function handlePaymentIntentFailed(
   const paymentIntent = event.data.object as Stripe.PaymentIntent;
   const organizationId = connection.organizationId;
 
-  // Get session ID from metadata or use payment intent ID
+  // Get session ID from metadata - CRITICAL for card testing detection
+  // Use sessionId to group multiple payment attempts together
   const sessionId =
     paymentIntent.metadata?.session_id ||
-    paymentIntent.metadata?.checkout_session_id ||
-    paymentIntent.id;
+    paymentIntent.metadata?.checkout_session_id;
 
   if (!connection.accessToken) {
     console.error("[Webhook] No access token for connection");
@@ -428,10 +508,11 @@ export async function handlePaymentIntentFailed(
     ? generateCardFingerprint(card.last4 || "", card.brand || "")
     : generateCardFingerprint("0000", "unknown");
 
-  // Track failed payment attempt
+  // Track failed payment attempt - use sessionId for grouping if available
+  const trackingKey = sessionId || paymentIntent.id;
   const result = await trackPaymentAttempt(
     organizationId,
-    paymentIntent.id, // invoiceId
+    trackingKey, // Use sessionId to group card testing attempts
     {
       cardFingerprint,
       cardLast4: card?.last4 || "****",
@@ -446,6 +527,8 @@ export async function handlePaymentIntentFailed(
     },
     sessionId
   );
+
+  console.log(`[Fraud] Payment failed tracked: score=${result.suspicionScore}, uniqueCards=${result.metrics.uniqueCards}, attempts=${result.metrics.totalAttempts}`);
 
   // If card testing detected, create alert
   if (result.recommendation === "BLOCK" || result.suspicionScore >= 70) {
@@ -468,14 +551,57 @@ export async function handlePaymentIntentFailed(
   }
 
   // Update fraud detection record if exists, link to card testing tracker
-  await db
-    .update(fraudDetections)
-    .set({
-      actualOutcome: "payment_failed",
-      cardTestingTrackerId: result.trackerId,
-      updatedAt: new Date(),
-    })
-    .where(eq(fraudDetections.paymentIntentId, paymentIntent.id));
+  // Also update the risk score if card testing is detected
+  const cardTestingContribution = Math.min(result.suspicionScore * 0.5, 50);
+  
+  // Get existing fraud detection to update risk score
+  const [existingDetection] = await db
+    .select({ riskScore: fraudDetections.riskScore, signals: fraudDetections.signals })
+    .from(fraudDetections)
+    .where(eq(fraudDetections.paymentIntentId, paymentIntent.id))
+    .limit(1);
+
+  if (existingDetection) {
+    // Calculate new risk score with card testing contribution
+    const currentRiskScore = existingDetection.riskScore || 0;
+    const newRiskScore = Math.min(100, currentRiskScore + cardTestingContribution);
+    
+    // Recalculate composite score with updated card testing data
+    const updatedCompositeScore = calculateCompositeScore(
+      newRiskScore,
+      result.suspicionScore,
+      result.trackerId
+    );
+    
+    await db
+      .update(fraudDetections)
+      .set({
+        actualOutcome: "payment_failed",
+        cardTestingTrackerId: result.trackerId,
+        riskScore: newRiskScore,
+        // Update composite score fields
+        compositeScore: updatedCompositeScore.totalScore,
+        compositeRiskLevel: updatedCompositeScore.riskLevel,
+        cardTestingSuspicionScore: result.suspicionScore,
+        signals: {
+          ...(existingDetection.signals as object || {}),
+          cardTesting: {
+            suspicionScore: result.suspicionScore,
+            uniqueCards: result.metrics.uniqueCards,
+            totalAttempts: result.metrics.totalAttempts,
+            failedAttempts: result.metrics.failedAttempts,
+            failureRate: result.metrics.failureRate,
+            contribution: cardTestingContribution,
+            reasons: result.reasons.map(r => r.label),
+          },
+          compositeScoreBreakdown: updatedCompositeScore.breakdown,
+        },
+        updatedAt: new Date(),
+      })
+      .where(eq(fraudDetections.paymentIntentId, paymentIntent.id));
+    
+    console.log(`[Fraud] Updated fraud detection: oldScore=${currentRiskScore}, cardTestingContribution=${cardTestingContribution}, newScore=${newRiskScore}, compositeScore=${updatedCompositeScore.totalScore}`);
+  }
 }
 
 // ============================================================================

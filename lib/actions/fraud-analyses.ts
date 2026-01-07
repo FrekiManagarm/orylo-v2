@@ -7,10 +7,17 @@ import { eq, desc, and, gte, lte, sql, or } from "drizzle-orm";
 import { auth } from "@/lib/auth/auth.server";
 import { headers } from "next/headers";
 
+import type { CardTestingTracker } from "@/lib/db/schemas/cardTestingTrackers";
+
 export type FraudAnalysisFilters = {
   riskScoreRange?: "low" | "medium" | "high";
+  compositeRiskLevel?: "minimal" | "low" | "moderate" | "elevated" | "high" | "critical";
   actions?: string[];
   dateRange?: "24h" | "7d" | "30d" | "all";
+};
+
+export type FraudDetectionWithCardTesting = FraudDetection & {
+  cardTestingTracker: CardTestingTracker | null;
 };
 
 export async function getFraudAnalyses(options?: {
@@ -36,9 +43,9 @@ export async function getFraudAnalyses(options?: {
 
     // Apply filters
     if (options?.filters) {
-      const { riskScoreRange, actions, dateRange } = options.filters;
+      const { riskScoreRange, compositeRiskLevel, actions, dateRange } = options.filters;
 
-      // Risk Score filter
+      // Risk Score filter (legacy)
       if (riskScoreRange) {
         if (riskScoreRange === "low") {
           conditions.push(lte(fraudDetections.riskScore, 30));
@@ -52,6 +59,11 @@ export async function getFraudAnalyses(options?: {
         } else if (riskScoreRange === "high") {
           conditions.push(gte(fraudDetections.riskScore, 70));
         }
+      }
+
+      // Composite Risk Level filter (new)
+      if (compositeRiskLevel) {
+        conditions.push(eq(fraudDetections.compositeRiskLevel, compositeRiskLevel));
       }
 
       // Actions filter
@@ -81,8 +93,15 @@ export async function getFraudAnalyses(options?: {
     }
 
     let query = db
-      .select()
+      .select({
+        fraudDetection: fraudDetections,
+        cardTestingTracker: cardTestingTrackers,
+      })
       .from(fraudDetections)
+      .leftJoin(
+        cardTestingTrackers,
+        eq(fraudDetections.cardTestingTrackerId, cardTestingTrackers.id)
+      )
       .where(and(...conditions))
       .orderBy(desc(fraudDetections.createdAt));
 
@@ -94,8 +113,15 @@ export async function getFraudAnalyses(options?: {
       query = query.offset(options.offset) as unknown as typeof query;
     }
 
-    const analyses = await query;
-    return analyses as unknown as FraudDetection[];
+    const results = await query;
+    
+    // Transform results to include cardTestingTracker in each fraud detection
+    const analyses: FraudDetectionWithCardTesting[] = results.map((row) => ({
+      ...row.fraudDetection,
+      cardTestingTracker: row.cardTestingTracker,
+    }));
+    
+    return analyses;
   } catch (error) {
     console.error("Error fetching fraud analyses:", error);
     throw error;

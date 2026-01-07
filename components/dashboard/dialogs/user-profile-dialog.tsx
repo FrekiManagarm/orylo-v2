@@ -33,7 +33,8 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
-import { KeyRound, Mail } from "lucide-react";
+import { KeyRound, Mail } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 // import { updateUserProfile } from "@/lib/api/actions/user.action";
 import { User } from "@/lib/db/schemas";
 
