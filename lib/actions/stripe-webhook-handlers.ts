@@ -26,8 +26,10 @@ import {
   calculateCompositeScore,
   type CustomerTier,
 } from "@/lib/fraud-detection";
+import { applyCustomRules } from "@/lib/fraud-detection/custom-rules";
 
 import { type DetectionContext } from "@/lib/db/schemas/fraudDetections";
+import { autoRefundFraudulentPayment } from "@/lib/actions/auto-refund";
 import { getConnectedStripeClient, getChargeFromPaymentIntent } from "@/lib/stripe";
 import { generateFraudExplanation } from "@/lib/mastra";
 import { revalidatePath } from "next/cache";
@@ -113,8 +115,8 @@ export async function handlePaymentIntentCreated(
   let cardTestingResult: Awaited<ReturnType<typeof trackPaymentAttempt>> | null = null;
 
   // Use sessionId to link multiple payment attempts together (critical for card testing detection)
-  const sessionId = context.sessionId || 
-    paymentIntent.metadata?.session_id || 
+  const sessionId = context.sessionId ||
+    paymentIntent.metadata?.session_id ||
     paymentIntent.metadata?.checkout_session_id;
 
   if (context.cardFingerprint) {
@@ -151,7 +153,7 @@ export async function handlePaymentIntentCreated(
   } else if (sessionId) {
     // No card fingerprint yet, but try to get existing card testing data for this session
     const existingVelocity = await calculateVelocityMetrics(organizationId, sessionId, sessionId);
-    
+
     if (existingVelocity.suspicionScore > 0) {
       context.velocity = {
         ...context.velocity,
@@ -165,14 +167,58 @@ export async function handlePaymentIntentCreated(
     }
   }
 
-  // STEP 3: Rules-based detection (now with updated card testing data)
-  const detection = detectFraud(context);
+  // STEP 2.5: Apply custom rules (before system detection)
+  const customRuleResult = await applyCustomRules(context, organizationId);
+
+  let detection: ReturnType<typeof detectFraud>;
+
+  // Check if custom rule blocks the transaction
+  if (customRuleResult.decision === "BLOCK") {
+    // Skip system detection - use custom rule decision
+    detection = {
+      decision: "BLOCK",
+      riskScore: 100,
+      factors: customRuleResult.factors,
+      confidence: "high",
+    };
+    console.log(
+      `[Fraud] Blocked by custom rule, skipping system detection`
+    );
+  } else {
+    // STEP 3: Rules-based detection (system rules)
+    detection = detectFraud(context);
+
+    // Merge custom rule factors if any
+    if (customRuleResult.factors.length > 0) {
+      detection.factors = [
+        ...customRuleResult.factors,
+        ...detection.factors,
+      ];
+      console.log(
+        `[Fraud] Merged ${customRuleResult.factors.length} custom rule factors with system detection`
+      );
+    }
+  }
 
   console.log(
     `[Fraud] Decision: ${detection.decision}, Score: ${detection.riskScore}`
   );
 
-  // STEP 4: Generate AI explanation (with fresh card testing data from tracking)
+  // STEP 4: Calculate composite risk score (before AI explanation)
+  const cardTestingSuspicionScore = cardTestingResult?.suspicionScore ||
+    context.velocity?.suspicionScore || 0;
+
+  const compositeScoreResult = calculateCompositeScore(
+    detection.riskScore,
+    cardTestingSuspicionScore,
+    cardTestingTrackerId || undefined
+  );
+
+  console.log(
+    `[Fraud] Composite Score: ${compositeScoreResult.totalScore} (risk: ${detection.riskScore}, cardTesting: ${cardTestingSuspicionScore}, level: ${compositeScoreResult.riskLevel})`
+  );
+
+  // STEP 5: Generate AI explanation (with composite score)
   let aiExplanation = "";
   let aiTokensUsed = 0;
   let aiLatencyMs = 0;
@@ -203,7 +249,7 @@ export async function handlePaymentIntentCreated(
   try {
     const result = await generateFraudExplanation({
       decision: detection.decision,
-      riskScore: detection.riskScore,
+      riskScore: Math.round(compositeScoreResult.totalScore), // Use composite score instead of base riskScore
       confidence: detection.confidence,
       factors: detection.factors,
       transaction: {
@@ -281,21 +327,9 @@ export async function handlePaymentIntentCreated(
     },
   };
 
-  // STEP 6: Calculate composite risk score
-  const cardTestingSuspicionScore = cardTestingResult?.suspicionScore || 
-    context.velocity?.suspicionScore || 0;
-  
-  const compositeScoreResult = calculateCompositeScore(
-    detection.riskScore,
-    cardTestingSuspicionScore,
-    cardTestingTrackerId || undefined
-  );
+  // STEP 6: Save to database with card testing tracker reference and composite score
+  const finalCompositeScore = Math.round(compositeScoreResult.totalScore);
 
-  console.log(
-    `[Fraud] Composite Score: ${compositeScoreResult.totalScore} (risk: ${detection.riskScore}, cardTesting: ${cardTestingSuspicionScore}, level: ${compositeScoreResult.riskLevel})`
-  );
-
-  // STEP 7: Save to database with card testing tracker reference and composite score
   const [savedAnalysis] = await db
     .insert(fraudDetections)
     .values({
@@ -305,13 +339,14 @@ export async function handlePaymentIntentCreated(
       amount: paymentIntent.amount,
       currency: paymentIntent.currency.toUpperCase(),
       customerEmail: context.customerEmail || null,
-      riskScore: detection.riskScore,
+      // riskScore is now the composite score (base + card testing)
+      riskScore: finalCompositeScore,
       decision: detection.decision,
       confidence: detection.confidence,
-      // Composite score fields
-      compositeScore: compositeScoreResult.totalScore,
+      // Composite score fields - ensure integers for database
+      compositeScore: finalCompositeScore,
       compositeRiskLevel: compositeScoreResult.riskLevel,
-      cardTestingSuspicionScore,
+      cardTestingSuspicionScore: Math.round(cardTestingSuspicionScore),
       factors: detection.factors,
       signals: {
         factors: detection.factors,
@@ -320,6 +355,8 @@ export async function handlePaymentIntentCreated(
         customerTier: context.customer?.tier,
         adjustments: detection.adjustments,
         compositeScoreBreakdown: compositeScoreResult.breakdown,
+        // Store base risk score for reference
+        baseRiskScore: detection.riskScore,
       },
       agentsUsed: ["fraud-explanation-generator"],
       aiExplanation,
@@ -362,7 +399,9 @@ export async function handlePaymentIntentCreated(
       relatedFraudDetectionId: savedAnalysis.id,
       data: {
         paymentIntentId: paymentIntent.id,
-        riskScore: detection.riskScore,
+        riskScore: compositeScoreResult.totalScore, // Use composite score
+        baseRiskScore: detection.riskScore, // Keep base score for reference
+        compositeRiskLevel: compositeScoreResult.riskLevel,
         factors: detection.factors.slice(0, 5), // Top 5 factors
         cardTesting: detection.factors.some(f =>
           f.type === "card_testing" || f.type === "card_testing_critical"
@@ -381,7 +420,9 @@ export async function handlePaymentIntentCreated(
       relatedFraudDetectionId: savedAnalysis.id,
       data: {
         paymentIntentId: paymentIntent.id,
-        riskScore: detection.riskScore,
+        riskScore: compositeScoreResult.totalScore, // Use composite score
+        baseRiskScore: detection.riskScore, // Keep base score for reference
+        compositeRiskLevel: compositeScoreResult.riskLevel,
         factors: detection.factors.slice(0, 5),
       },
     });
@@ -422,16 +463,104 @@ export async function handlePaymentIntentSucceeded(
   // Update customer reputation score
   await updateCustomerScore(organizationId, customerId, stripeClient);
 
-  // Update fraud analysis to mark as successful
-  await db
-    .update(fraudDetections)
-    .set({
-      actualOutcome: "legitimate",
-      actionTaken: "none",
-      blocked: false,
-      updatedAt: new Date(),
-    })
-    .where(eq(fraudDetections.paymentIntentId, paymentIntent.id));
+  // Check for fraudulent payments that need auto-refund
+  let wasRefunded = false;
+  try {
+    const fraudDetection = await db.query.fraudDetections.findFirst({
+      where: eq(fraudDetections.paymentIntentId, paymentIntent.id),
+    });
+
+    if (fraudDetection) {
+      // Determine if refund is needed
+      const needsRefund =
+        fraudDetection.actualOutcome === "fraud_confirmed" ||
+        (fraudDetection.riskScore >= 80 &&
+          fraudDetection.decision === "BLOCK" &&
+          !fraudDetection.blocked); // Payment succeeded despite block recommendation
+
+      if (needsRefund && !fraudDetection.refundId) {
+        console.log(
+          `[Webhook] Auto-refund triggered for payment ${paymentIntent.id}`
+        );
+
+        // Attempt auto-refund
+        const refundResult = await autoRefundFraudulentPayment(
+          paymentIntent.id,
+          organizationId,
+          fraudDetection.id
+        );
+
+        if (refundResult.success && refundResult.refundId) {
+          wasRefunded = true;
+
+          // Update fraud detection with refund information
+          await db
+            .update(fraudDetections)
+            .set({
+              refundId: refundResult.refundId,
+              actionTaken: "refunded",
+              updatedAt: new Date(),
+            })
+            .where(eq(fraudDetections.id, fraudDetection.id));
+
+          // Create alert for successful refund
+          await db.insert(alerts).values({
+            organizationId,
+            type: "fraud_refunded",
+            severity: "high",
+            title: "Paiement frauduleux remboursé automatiquement",
+            message: `Paiement ${paymentIntent.id} (${(paymentIntent.amount / 100).toFixed(2)}€) remboursé automatiquement suite à la détection de fraude`,
+            data: {
+              paymentIntentId: paymentIntent.id,
+              refundId: refundResult.refundId,
+              fraudDetectionId: fraudDetection.id,
+              riskScore: fraudDetection.riskScore,
+              decision: fraudDetection.decision,
+            },
+          });
+
+          console.log(
+            `[Webhook] Auto-refund successful: ${refundResult.refundId}`
+          );
+        } else {
+          // Refund failed - create alert but don't block webhook
+          console.error(
+            `[Webhook] Auto-refund failed for ${paymentIntent.id}:`,
+            refundResult.error
+          );
+
+          await db.insert(alerts).values({
+            organizationId,
+            type: "refund_failed",
+            severity: "high",
+            title: "Échec du remboursement automatique",
+            message: `Échec du remboursement automatique pour le paiement ${paymentIntent.id}: ${refundResult.error}`,
+            data: {
+              paymentIntentId: paymentIntent.id,
+              fraudDetectionId: fraudDetection.id,
+              error: refundResult.error,
+            },
+          });
+        }
+      }
+    }
+  } catch (error) {
+    // Log error but don't disrupt webhook processing
+    console.error("[Webhook] Error in auto-refund check:", error);
+  }
+
+  // Update fraud analysis to mark as successful (only if not refunded)
+  if (!wasRefunded) {
+    await db
+      .update(fraudDetections)
+      .set({
+        actualOutcome: "legitimate",
+        actionTaken: "none",
+        blocked: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(fraudDetections.paymentIntentId, paymentIntent.id));
+  }
 
   // Track successful payment for velocity metrics
   const charge = await getChargeFromPaymentIntent(stripeClient, paymentIntent);
@@ -551,38 +680,44 @@ export async function handlePaymentIntentFailed(
   }
 
   // Update fraud detection record if exists, link to card testing tracker
-  // Also update the risk score if card testing is detected
-  const cardTestingContribution = Math.min(result.suspicionScore * 0.5, 50);
-  
-  // Get existing fraud detection to update risk score
   const [existingDetection] = await db
-    .select({ riskScore: fraudDetections.riskScore, signals: fraudDetections.signals })
+    .select({
+      riskScore: fraudDetections.riskScore,
+      signals: fraudDetections.signals,
+      compositeScore: fraudDetections.compositeScore
+    })
     .from(fraudDetections)
     .where(eq(fraudDetections.paymentIntentId, paymentIntent.id))
     .limit(1);
 
   if (existingDetection) {
-    // Calculate new risk score with card testing contribution
-    const currentRiskScore = existingDetection.riskScore || 0;
-    const newRiskScore = Math.min(100, currentRiskScore + cardTestingContribution);
-    
-    // Recalculate composite score with updated card testing data
+    // Extract base risk score from signals if available, otherwise use current riskScore
+    const signals = existingDetection.signals as any;
+    const baseRiskScore = signals?.baseRiskScore ?? existingDetection.riskScore ?? 0;
+
+    // Recalculate composite score with card testing data
     const updatedCompositeScore = calculateCompositeScore(
-      newRiskScore,
+      baseRiskScore,
       result.suspicionScore,
       result.trackerId
     );
-    
+
+    const finalCompositeScore = Math.round(updatedCompositeScore.totalScore);
+
+    console.log(
+      `[Fraud] Updated fraud detection: baseScore=${baseRiskScore}, cardTestingScore=${result.suspicionScore}, compositeScore=${finalCompositeScore}`
+    );
+
     await db
       .update(fraudDetections)
       .set({
         actualOutcome: "payment_failed",
         cardTestingTrackerId: result.trackerId,
-        riskScore: newRiskScore,
-        // Update composite score fields
-        compositeScore: updatedCompositeScore.totalScore,
+        // Update riskScore to be the composite score (base + card testing)
+        riskScore: finalCompositeScore,
+        compositeScore: finalCompositeScore,
         compositeRiskLevel: updatedCompositeScore.riskLevel,
-        cardTestingSuspicionScore: result.suspicionScore,
+        cardTestingSuspicionScore: Math.round(result.suspicionScore),
         signals: {
           ...(existingDetection.signals as object || {}),
           cardTesting: {
@@ -591,7 +726,6 @@ export async function handlePaymentIntentFailed(
             totalAttempts: result.metrics.totalAttempts,
             failedAttempts: result.metrics.failedAttempts,
             failureRate: result.metrics.failureRate,
-            contribution: cardTestingContribution,
             reasons: result.reasons.map(r => r.label),
           },
           compositeScoreBreakdown: updatedCompositeScore.breakdown,
@@ -599,8 +733,6 @@ export async function handlePaymentIntentFailed(
         updatedAt: new Date(),
       })
       .where(eq(fraudDetections.paymentIntentId, paymentIntent.id));
-    
-    console.log(`[Fraud] Updated fraud detection: oldScore=${currentRiskScore}, cardTestingContribution=${cardTestingContribution}, newScore=${newRiskScore}, compositeScore=${updatedCompositeScore.totalScore}`);
   }
 }
 

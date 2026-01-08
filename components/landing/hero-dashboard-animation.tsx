@@ -2,12 +2,12 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle, CreditCard, Activity, Search, BlockedIcon, RefreshCw } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { HugeiconsIcon, IconSvgElement } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface TransactionDetail {
-  icon: any;
+  icon: IconSvgElement;
   label: string;
   value: string;
   subValue?: string;
@@ -318,7 +318,7 @@ function DashboardContent({ step, scenario, history }: { step: number, scenario:
                             "flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/5",
                             idx === 2 ? "col-span-2" : ""
                           )}>
-                            <detail.icon className={cn("w-3.5 h-3.5 mt-0.5 shrink-0", detail.color)} />
+                            <HugeiconsIcon icon={detail.icon} className={cn("w-3.5 h-3.5 mt-0.5 shrink-0", detail.color)} />
                             <div className="min-w-0">
                               <div className="text-[10px] text-zinc-400 leading-none mb-1">{detail.label}</div>
                               <div className="text-xs font-medium text-white truncate">{detail.value}</div>
